@@ -72,4 +72,5 @@ Fix all reported errors before committing.
 - Missing `.cursor-plugin/plugin.json` in plugin folder.
 - Missing frontmatter keys (`name`, `description`) in skills, agents, or commands.
 - Rule files missing frontmatter `description`.
+- Using a filename other than `mcp.json` for MCP server definitions.
 - Broken relative paths for `logo`, `hooks`, or `mcpServers` in manifest files.
