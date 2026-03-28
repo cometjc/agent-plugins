@@ -1,0 +1,11 @@
+---
+description: Repository uses English for docs, comments, and user-facing text
+globs: **/*
+alwaysApply: true
+---
+
+# Project language
+
+- Write **English** only in this repo: READMEs, `AGENTS.md`, `ai-rules/`, skills, specs, plans, code comments, tests, and CLI/help copy.
+- Do not introduce non-English prose for new content unless quoting an external source.
+- The language rule is also indexed in root **`AGENTS.md`**.

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="title desc">
+  <title id="title">Parallel Lane Dev</title>
+  <desc id="desc">Parallel lanes for multi-subagent / executor coordination.</desc>
+  <rect width="128" height="128" rx="20" fill="#0c4a6e" />
+  <rect x="24" y="28" width="80" height="12" rx="4" fill="#38bdf8" />
+  <rect x="24" y="58" width="80" height="12" rx="4" fill="#7dd3fc" />
+  <rect x="24" y="88" width="80" height="12" rx="4" fill="#bae6fd" />
+</svg>

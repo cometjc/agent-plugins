@@ -2,10 +2,18 @@
 
 Build and publish Cursor Marketplace plugins from a single repo.
 
-Two starter plugins are included:
+Plugins in this template:
 
-- **starter-simple**: rules and skills only
-- **starter-advanced**: rules, skills, agents, commands, hooks, MCP, and scripts
+- **parallel-lane-dev**: Open Plugins skill plus `plugins/parallel-lane-dev/scripts/` and the sibling execution tree (`scoreboard.md`, `executions/`); specs in `plugins/parallel-lane-dev/spec/PLD/` (`.plugin/` + `skills/parallel-lane-dev/`)
+
+When `marketplace.json` sets `metadata.pluginRoot` to `plugins`, each plugin `source` must be the **folder name under that root** (for example `parallel-lane-dev`), not `./plugins/<name>`.
+
+**Governance:** see root `AGENTS.md` and `ai-rules/` for shared baseline chapters (English). Cursor rules under `.cursor/rules/` are thin pointers only.
+
+## Executor and tests (this repo)
+
+- `npm run test:pld` — `node --test plugins/parallel-lane-dev/tests/pld-*.test.js`
+- `npm run pld:executor:audit` — requires an initialized `.pld/` (created via import)
 
 ## Getting started
 

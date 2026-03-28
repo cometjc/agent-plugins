@@ -1,0 +1,38 @@
+{
+  "name": "parallel-lane-dev",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Parallel lane executor (PLD scripts), Open Plugin skill, and Cursor marketplace starters.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test:pld": "node --test plugins/parallel-lane-dev/tests/pld-executor.test.js plugins/parallel-lane-dev/tests/pld-automation.test.js",
+    "validate:plugins": "node scripts/validate-template.mjs",
+    "pld:scoreboard:refresh": "node plugins/parallel-lane-dev/scripts/pld-refresh-scoreboard.cjs",
+    "pld:probe": "node plugins/parallel-lane-dev/scripts/pld-probe-lane.cjs",
+    "pld:envelope:record": "node plugins/parallel-lane-dev/scripts/pld-envelope.cjs",
+    "pld:command:record": "node plugins/parallel-lane-dev/scripts/pld-record-command-event.cjs",
+    "pld:reduce": "node plugins/parallel-lane-dev/scripts/pld-reduce-execution.cjs",
+    "pld:state:record": "node plugins/parallel-lane-dev/scripts/pld-record-lane-state.cjs",
+    "pld:insight:record": "node plugins/parallel-lane-dev/scripts/pld-record-insight.cjs",
+    "pld:insights:summarize": "node plugins/parallel-lane-dev/scripts/pld-summarize-insights.cjs",
+    "pld:active-set:replan": "node plugins/parallel-lane-dev/scripts/pld-replan-active-set.cjs",
+    "pld:refill:suggest": "node plugins/parallel-lane-dev/scripts/pld-suggest-refill.cjs",
+    "pld:schedule:suggest": "node plugins/parallel-lane-dev/scripts/pld-suggest-schedule.cjs",
+    "pld:cycle": "node plugins/parallel-lane-dev/scripts/pld-run-cycle.cjs",
+    "pld:launch": "node plugins/parallel-lane-dev/scripts/pld-launch-active-set.cjs",
+    "pld:review": "node plugins/parallel-lane-dev/scripts/pld-drive-review-loop.cjs",
+    "pld:intake": "node plugins/parallel-lane-dev/scripts/pld-intake-ready-to-commit.cjs",
+    "pld:autopilot": "node plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs",
+    "pld:dispatch-plan": "node plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs",
+    "pld:compose": "node plugins/parallel-lane-dev/scripts/pld-compose-message.cjs",
+    "pld:telemetry:summarize": "node plugins/parallel-lane-dev/scripts/pld-summarize-telemetry.cjs",
+    "pld:telemetry:review": "node plugins/parallel-lane-dev/scripts/pld-render-telemetry-review.cjs",
+    "pld:executor": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs",
+    "pld:executor:import": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs import-plans",
+    "pld:executor:audit": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs audit",
+    "pld:executor:go": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs go"
+  }
+}

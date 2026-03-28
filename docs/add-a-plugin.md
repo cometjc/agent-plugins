@@ -45,17 +45,19 @@ Add only the components you need:
 
 ## 3. Register in marketplace manifest
 
-Edit `.cursor-plugin/marketplace.json` and append a new entry:
+Edit `.cursor-plugin/marketplace.json` and append a new entry.
+
+If `metadata.pluginRoot` is `plugins`, `source` must be the **plugin folder name under that root** (not `./plugins/...`):
 
 ```json
 {
   "name": "my-new-plugin",
-  "source": "./plugins/my-new-plugin",
+  "source": "my-new-plugin",
   "description": "Describe your plugin"
 }
 ```
 
-`source` is the relative path from the repository root to the plugin folder.
+If `pluginRoot` is omitted, `source` is relative to the repository root instead.
 
 ## 4. Validate
 

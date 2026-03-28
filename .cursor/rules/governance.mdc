@@ -1,0 +1,10 @@
+---
+description: Points agents to AGENTS.md and ai-rules/ as the only governance sources
+globs: **/*
+alwaysApply: true
+---
+
+# Governance source of truth
+
+- Read the repository root **`AGENTS.md`** for the full index and must-follow guidance.
+- Long-form rule chapters live only in **`ai-rules/*.md`**. Do not treat `.cursor/rules/*.mdc` as authoritative copies of those chapters—keep adapters thin.

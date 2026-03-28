@@ -1,0 +1,41 @@
+# PLD Scoreboard
+
+> This tracked scoreboard keeps only coordinator-owned manual fields. Auto-derived lane state lives in `PLD/state/scoreboard.runtime.md`.
+>
+> Runtime scoreboard output: `PLD/state/scoreboard.runtime.md` via `npm run pld:scoreboard:refresh`
+>
+> When `PLD/state/<execution-id>/lane-<n>.json` exists, refresh tooling treats that lane journal as the primary runtime state source before falling back to thread/session heuristics.
+>
+> Recommended manual lane phases for multi-lane scheduling: `queued`, `implementing`, `spec-review-pending`, `quality-review-pending`, `correction`, `refill-ready`, `blocked`, `parked`
+>
+> `pld-self-hosting` uses lanes 1-4 as the initial 4-thread active set; lanes 5-6 are queued follow-up lanes that only enter the active set when a slot opens.
+
+| Execution | Lane | Ownership | Current item | Phase | Item commit | Last verification | Blocked by | Next refill target | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| pld-self-hosting | Lane 1 | Scheduler core | Multi-lane / 4-thread schedule helper | parked | `n/a` | `node --test plugins/parallel-lane-dev/tests/pld-automation.test.js`; `node plugins/parallel-lane-dev/scripts/pld-suggest-schedule.cjs --execution pld-self-hosting --json` | none | Scheduler edge cases | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 2 | Scoreboard integration | Self-hosting scoreboard rows and schedule-facing refresh | parked | `1613f3c` | `npm run pld:scoreboard:refresh`; `node plugins/parallel-lane-dev/scripts/pld-suggest-schedule.cjs --execution pld-self-hosting` | none | Schedule-facing scoreboard wording polish | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 3 | Rules and communication | Lane-pool + active-cap rules alignment | parked | `ef5f71e` | `rg -n "projection-only\\\\\\\|execution-insights\\\\\\\|adopted global learnings\\\\\\\|read-only\\\\\\\|tracked scoreboard\\\\\\\|lane-plan status\\\\\\\|graduate\\\\\\\|bounded follow-up" plugins/parallel-lane-dev/spec/PLD plugins/parallel-lane-dev/AGENTS.md` | none | Execution-level wording cleanup | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 4 | Regression and CLI surface | Wait for a fresh regression/CLI surface item after the cross-check coverage landed | parked | `655aa39` | `node --test plugins/parallel-lane-dev/tests/pld-automation.test.js`; `git diff --check` | none | Re-open only if a fresh regression/CLI surface gap appears beyond the accepted cross-check coverage | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 5 | Plot-mode execution migration | Plot-mode docs alignment for lane-pool scheduling | parked | `n/a` | `rg -n "4-thread\\\\\\\\|queued\\\\\\\\|lane pool" plugins/parallel-lane-dev/executions/plot-mode` | wait-slot | Plot-mode overview wording | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 6 | Follow-up and coordinator ergonomics | Post-rollout follow-up capture | parked | `3c2a967` | `sed -n '1,260p' tasks/todo.md` | none | Coordinator workflow follow-up | pld-go: park self-hosting after dev-flow improvement plan completed |
+| pld-self-hosting | Lane 7 | PLD meta-optimization | Wait for a fresh scheduler/runtime truth finding after the accepted warning cleanup | parked | `9c391aa` | `node --test plugins/parallel-lane-dev/tests/pld-automation.test.js`; `npm run pld:scoreboard:refresh`; `node plugins/parallel-lane-dev/scripts/pld-suggest-schedule.cjs --execution pld-self-hosting`; `node plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs --execution pld-self-hosting --dry-run --json`; `npm run build` | none | Re-open only when a new scheduler/runtime truth finding yields a concrete helper, docs delta, or regression | pld-go: park self-hosting after dev-flow improvement plan completed |
+| plot-mode | Lane 1 | Node contract + handoff | n/a | parked | `baa7b8e` | `npm run build`; `node --test tests/plot-snapshot.test.js tests/plot-handoff.test.js`; `node --test tests/plot-mode-shell.test.js` | none | n/a | all-plans-together: park plot-mode after reactivation work landed on main |
+| plot-mode | Lane 2 | Rust runtime + boundary | Wait for a fresh runtime-owned item after accepted compare payload seam | parked | `d361653` | `cargo test --manifest-path Cargo.toml`; `cargo check --manifest-path Cargo.toml` | none | Re-open only when a concrete post-seam runtime or navigation item exists | all-plans-together: park plot-mode after reactivation work landed on main |
+| plot-mode | Lane 3 | Rust chart surface | n/a | parked | `c5f6c26` | `cargo test --manifest-path Cargo.toml render::chart -- --nocapture`; `cargo check --manifest-path Cargo.toml` | none | n/a | all-plans-together: park plot-mode after reactivation work landed on main |
+| plot-mode | Lane 4 | Rust panels + docs | n/a | parked | `6bb1fba` | `cargo test render_panels_builds_visible_summary_and_compare_blocks --manifest-path Cargo.toml`; `cargo test render_panels_locks_visible_summary_compare_copy_and_shape --manifest-path Cargo.toml`; `cargo check --manifest-path Cargo.toml` | none | n/a | all-plans-together: park plot-mode after reactivation work landed on main |
+| plot-mode | Lane 5 | Plot viewer docs + operator flow | n/a | parked | `25ea3c1` | `npm run build`; `node --test tests/plot-readme.test.js`; `node --test tests/plot-mode-shell.test.js` | none | n/a | all-plans-together: park plot-mode after reactivation work landed on main |
+
+## Recent Codex Threads
+
+> Auto-refreshed from `~/.codex/state_5.sqlite` for this repo cwd.
+
+| Nickname | Role | Thread ID | Updated |
+| --- | --- | --- | --- |
+| Rawls | worker | `019d0e91-8031-7a00-ac29-6db37ccac556` | 2026-03-21 14:23:13Z |
+| Ohm | worker | `019d0e91-8179-7190-9ab8-2abf8126ec42` | 2026-03-21 14:22:58Z |
+| Bernoulli | worker | `019d0e91-7ef5-79e3-9651-1231a78b2fd5` | 2026-03-21 14:22:14Z |
+| Lovelace | worker | `019d0e91-7dd4-7ca0-8435-696ee9922e3c` | 2026-03-21 14:22:00Z |
+| Franklin | explorer | `019d0e59-6ff2-70c0-91e8-42802f123ecc` | 2026-03-21 03:59:21Z |
+| Hegel | explorer | `019d0e59-7103-7102-99fb-ab87ad0d793e` | 2026-03-21 03:59:08Z |
+| Lorentz | explorer | `019d0e59-6ef1-7c11-9fd4-3ecd821ee0c0` | 2026-03-21 03:59:04Z |
+| Copernicus | explorer | `019d0e59-6df9-7fb1-8a30-7af54b3df9b5` | 2026-03-21 03:59:02Z |

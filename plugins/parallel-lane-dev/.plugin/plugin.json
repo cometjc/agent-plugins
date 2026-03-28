@@ -1,0 +1,14 @@
+{
+  "name": "parallel-lane-dev",
+  "version": "0.1.0",
+  "description": "Open Plugin: parallel-lane multi-subagent executor skill (SQLite, worktrees); scripts under plugins/parallel-lane-dev/scripts/.",
+  "author": {
+    "name": "Parallel lane dev contributors",
+    "url": "https://github.com/cursor/plugin-template"
+  },
+  "homepage": "https://github.com/cursor/plugin-template",
+  "repository": "https://github.com/cursor/plugin-template",
+  "license": "MIT",
+  "keywords": ["pld", "parallel-lane-dev", "executor", "multi-agent", "worktree", "lanes", "sqlite"],
+  "logo": "./assets/logo.svg"
+}
