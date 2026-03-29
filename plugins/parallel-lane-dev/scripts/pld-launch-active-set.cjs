@@ -5,7 +5,7 @@ const {loadLanePlan, resolveProjectRoot} = require('./pld-lib.cjs');
 const {
   buildLaunchFromExecutor,
   hasExecutorDb,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {runCycle} = require('./pld-run-cycle.cjs');
 
 function parseArgs(argv) {

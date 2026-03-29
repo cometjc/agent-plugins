@@ -10,10 +10,10 @@ When `marketplace.json` sets `metadata.pluginRoot` to `plugins`, each plugin `so
 
 **Governance:** see root `AGENTS.md` and `ai-rules/` for shared baseline chapters (English). Cursor rules under `.cursor/rules/` are thin pointers only.
 
-## Executor and tests (this repo)
+## PLD tool and tests (this repo)
 
 - `npm run test:pld` — `node --test plugins/parallel-lane-dev/tests/pld-*.test.js`
-- `npm run pld:executor:audit` — requires an initialized `.pld/` (created via import)
+- `npm run pld:tool:audit` — requires an initialized `.pld/` (created via import); `pld:executor:audit` is an alias
 
 ## Getting started
 

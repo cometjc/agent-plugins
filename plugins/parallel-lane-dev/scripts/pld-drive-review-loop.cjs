@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const {
   buildReviewLoopFromExecutor,
   hasExecutorDb,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {
   loadLanePlan,
   loadScoreboardTable,

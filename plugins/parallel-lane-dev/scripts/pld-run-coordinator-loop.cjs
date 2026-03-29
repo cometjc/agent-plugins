@@ -3,7 +3,7 @@
 const {
   hasExecutorDb,
   buildCoordinatorLoopFromExecutor,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {
   resolveProjectRoot,
   summarizeExecutionInsights: summarizeLegacyExecutionInsights,

@@ -1,6 +1,8 @@
 # PLD Operating Rules
 
-> **PLD** (parallel-lane-dev) names the multi-lane subagent execution model in this repo. Orchestration goes through a repo-local central executor (`.pld/executor.sqlite` + `<PLD-tree>/scripts/pld-executor.cjs`, where the PLD tree is e.g. repo-root `PLD/` or `plugins/parallel-lane-dev/` in this monorepo). Legacy markdown/json/ndjson surfaces may still exist during migration, but they are not the canonical write path.
+> **PLD** (parallel-lane-dev) names the multi-lane subagent execution model in this repo. Orchestration goes through a repo-local central executor (`.pld/executor.sqlite` + `<PLD-tree>/scripts/pld-tool.cjs`, where the PLD tree is e.g. repo-root `PLD/` or `plugins/parallel-lane-dev/` in this monorepo). Legacy markdown/json/ndjson surfaces may still exist during migration, but they are not the canonical write path.
+
+**pld-tool:** The CLI defaults to role **`worker`** (lane implementer ACL); **`import-plans`**, **`go`**, and other coordinator-only commands require **`--role coordinator`** (or **`PLD_ROLE=coordinator`**). Coder and reviewer subagents perform claim/report transitions via **`pld-tool`**; the Coordinator (main agent) imports plans and sets policy but must not become the only channel for hot-path state writes. **Final merge** to the integration/mainline branch is **Coordinator-only**; plugin agents **`pld-coder`** and **`pld-reviewer`** (`agents/*.md`) document which **`pld-tool`** subcommands each role may run.
 
 ## Core Workflow
 

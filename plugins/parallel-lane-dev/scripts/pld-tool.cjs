@@ -7,8 +7,39 @@ const {
   importLegacyExecutionState,
   importPlanFiles,
   reportResult,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {resolveProjectRoot} = require('./pld-lib.cjs');
+
+/** Subcommands each role may run (ACL). Default role is worker when unset (fail-closed vs coordinator). */
+const WORKER_LIKE_COMMANDS = new Set(['audit', 'claim-assignment', 'report-result']);
+const ROLE_COMMANDS = {
+  coordinator: new Set(['import-plans', 'audit', 'go', 'claim-assignment', 'report-result']),
+  worker: WORKER_LIKE_COMMANDS,
+  coder: WORKER_LIKE_COMMANDS,
+  reviewer: new Set(['audit', 'report-result']),
+};
+
+function resolveRole(args) {
+  const raw = (args.role || process.env.PLD_ROLE || 'worker').trim().toLowerCase();
+  if (!ROLE_COMMANDS[raw]) {
+    throw new Error(
+      `Invalid role "${raw}". Use --role <coordinator|worker|coder|reviewer> or PLD_ROLE (same values).`,
+    );
+  }
+  return raw;
+}
+
+function assertCommandAllowed(role, command) {
+  if (!command) {
+    return;
+  }
+  const allowed = ROLE_COMMANDS[role];
+  if (!allowed.has(command)) {
+    throw new Error(
+      `Role "${role}" is not allowed to run "${command}". Allowed: ${[...allowed].sort().join(', ')}`,
+    );
+  }
+}
 
 function parseArgs(argv) {
   const args = {
@@ -21,6 +52,9 @@ function parseArgs(argv) {
     const value = argv[index];
     if (value === '--project-root') {
       args.projectRoot = argv[index + 1];
+      index += 1;
+    } else if (value === '--role') {
+      args.role = argv[index + 1];
       index += 1;
     } else if (value === '--cleanup') {
       args.cleanup = true;
@@ -62,7 +96,10 @@ function printResult(result, asJson) {
 
 function usage() {
   return [
-    'Usage: node plugins/parallel-lane-dev/scripts/pld-executor.cjs <command> [options]',
+    'Usage: node plugins/parallel-lane-dev/scripts/pld-tool.cjs <command> [options]',
+    '',
+    'Global:',
+    '  --role coordinator|worker|coder|reviewer   ACL (default: worker, or PLD_ROLE env; coder = alias of worker)',
     '',
     'Commands:',
     '  import-plans [--cleanup] [--json]',
@@ -70,12 +107,16 @@ function usage() {
     '  go [--json]',
     '  claim-assignment --execution <id> --lane <Lane N> [--json]',
     '  report-result --execution <id> --lane <Lane N> --status <STATUS> --result-branch <branch> [--verification-summary <text>] [--json]',
+    '',
+    'Roles: coordinator = all commands; worker|coder = audit, claim-assignment, report-result; reviewer = audit, report-result',
   ].join('\n');
 }
 
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const projectRoot = args.projectRoot || resolveProjectRoot();
+  const role = resolveRole(args);
+  assertCommandAllowed(role, args.command);
 
   switch (args.command) {
     case 'import-plans': {
@@ -126,4 +167,7 @@ if (require.main === module) {
 module.exports = {
   main,
   parseArgs,
+  ROLE_COMMANDS,
+  resolveRole,
+  assertCommandAllowed,
 };

@@ -8,7 +8,7 @@ const {
 const {
   buildCycleFromExecutor: buildExecutorCycle,
   hasExecutorDb: hasExecutorDbState,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {prepareExecutionState} = require('./pld-envelope.cjs');
 const {recordLaneState} = require('./pld-record-lane-state.cjs');
 const {updateScoreboard} = require('./pld-refresh-scoreboard.cjs');

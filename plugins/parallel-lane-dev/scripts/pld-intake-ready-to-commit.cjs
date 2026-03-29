@@ -3,7 +3,7 @@
 const {
   buildCommitIntakeFromExecutor,
   hasExecutorDb,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {
   loadLanePlan,
   loadLaneState,

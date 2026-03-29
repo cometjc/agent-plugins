@@ -64,7 +64,7 @@ function writeFixture(root) {
 
 | Execution | Lane | Ownership | Current item | Phase | Item commit | Last verification | Blocked by | Next refill target | Notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| demo-flow | Lane 1 | Executor core | Build central executor import path | queued | \`abc1234\` | \`node --test plugins/parallel-lane-dev/tests/pld-executor.test.js\` | none | Route lane result exchange through result branches | imported fixture |
+| demo-flow | Lane 1 | Executor core | Build central executor import path | queued | \`abc1234\` | \`node --test plugins/parallel-lane-dev/tests/pld-tool.test.js\` | none | Route lane result exchange through result branches | imported fixture |
 `,
     'utf8',
   );
@@ -74,12 +74,12 @@ function writeFixture(root) {
     `# Lane 1 Plan - Executor Core
 
 > Ownership family:
-> \`plugins/parallel-lane-dev/scripts/pld-executor.cjs\`
+> \`plugins/parallel-lane-dev/scripts/pld-tool.cjs\`
 >
 > PLD worktree: \`.worktrees/lane-1-demo\`
 >
 > Lane-local verification:
-> \`node --test plugins/parallel-lane-dev/tests/pld-executor.test.js\`
+> \`node --test plugins/parallel-lane-dev/tests/pld-tool.test.js\`
 
 ## M - Work Item
 
@@ -105,7 +105,7 @@ function writeFixture(root) {
       currentItem: 'Build central executor import path',
       nextRefillTarget: 'Route lane result exchange through result branches',
       relatedCommit: 'abc1234',
-      verification: ['node --test plugins/parallel-lane-dev/tests/pld-executor.test.js'],
+      verification: ['node --test plugins/parallel-lane-dev/tests/pld-tool.test.js'],
       summary: 'queued for executor migration',
       detail: 'queued for executor migration',
       timestamp: '2026-03-22T00:00:00.000Z',
@@ -119,12 +119,119 @@ function writeFixture(root) {
 }
 
 function runExecutor(root, ...args) {
-  return run('node', [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-executor.cjs'), '--project-root', root, ...args], root);
+  const argv = [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'), '--project-root', root];
+  if (!args.includes('--role')) {
+    argv.push('--role', 'coordinator');
+  }
+  argv.push(...args);
+  return run('node', argv, root);
+}
+
+function runExecutorExpectFailure(root, ...args) {
+  try {
+    run('node', [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'), '--project-root', root, ...args], root);
+    assert.fail('expected non-zero exit');
+  } catch (err) {
+    assert.equal(err.status, 1, `expected exit 1, got ${err.status}`);
+    return String(err.stderr || '');
+  }
+  return '';
 }
 
 function readScalar(dbPath, sql) {
   return run('sqlite3', [dbPath, sql], path.dirname(dbPath));
 }
+
+test('ACL default worker rejects import-plans and go without --role', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-acl-default-'));
+  writeFixture(root);
+
+  const env = {...process.env};
+  delete env.PLD_ROLE;
+
+  let err = runExecutorExpectFailureEnv(env, root, 'import-plans', '--json');
+  assert.match(err, /not allowed to run "import-plans"/);
+
+  err = runExecutorExpectFailureEnv(env, root, 'go', '--json');
+  assert.match(err, /not allowed to run "go"/);
+});
+
+function runExecutorExpectFailureEnv(env, root, ...args) {
+  try {
+    execFileSync(
+      'node',
+      [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'), '--project-root', root, ...args],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env,
+      },
+    );
+    assert.fail('expected non-zero exit');
+  } catch (err) {
+    assert.equal(err.status, 1, `expected exit 1, got ${err.status}`);
+    return String(err.stderr || '');
+  }
+  return '';
+}
+
+test('ACL rejects coder import-plans and go', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-acl-coder-'));
+  writeFixture(root);
+
+  let err = runExecutorExpectFailure(root, '--role', 'coder', 'import-plans', '--json');
+  assert.match(err, /not allowed to run "import-plans"/);
+
+  err = runExecutorExpectFailure(root, '--role', 'coder', 'go', '--json');
+  assert.match(err, /not allowed to run "go"/);
+});
+
+test('ACL rejects reviewer claim-assignment', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-acl-reviewer-'));
+  writeFixture(root);
+
+  const err = runExecutorExpectFailure(
+    root,
+    '--role',
+    'reviewer',
+    'claim-assignment',
+    '--execution',
+    'demo-flow',
+    '--lane',
+    'Lane 1',
+    '--json',
+  );
+  assert.match(err, /not allowed to run "claim-assignment"/);
+});
+
+test('ACL PLD_ROLE env matches --role reviewer', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-acl-env-'));
+  writeFixture(root);
+
+  try {
+    execFileSync(
+      'node',
+      [
+        repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'),
+        '--project-root',
+        root,
+        'go',
+        '--json',
+      ],
+      {
+        cwd: root,
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: {...process.env, PLD_ROLE: 'reviewer'},
+      },
+    );
+    assert.fail('expected non-zero exit');
+  } catch (err) {
+    assert.equal(err.status, 1);
+    assert.match(String(err.stderr || ''), /not allowed to run "go"/);
+  }
+});
 
 test('executor go blocks until plan directory is empty', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-auth-executor-go-'));
@@ -155,6 +262,20 @@ test('executor import-plans ingests legacy plans and cleans plan directory', () 
   assert.equal(readScalar(dbPath, "select worktree_path from lanes where execution_name = 'demo-flow' and lane_name = 'Lane 1';"), path.join(root, '.worktrees', 'lane-1-demo'));
 });
 
+test('audit --json exposes stable top-level fields for coordinator batch sync', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-auth-executor-audit-json-'));
+  writeFixture(root);
+  runExecutor(root, 'import-plans', '--cleanup', '--json');
+
+  const audit = JSON.parse(runExecutor(root, 'audit', '--json'));
+
+  assert.ok(Array.isArray(audit.planFiles));
+  assert.equal(typeof audit.pendingPlanCount, 'number');
+  assert.equal(typeof audit.queuedLaneCount, 'number');
+  assert.equal(typeof audit.reviewLaneCount, 'number');
+  assert.ok(Array.isArray(audit.blockingIssues));
+});
+
 test('executor claim-assignment and report-result use the sqlite authority path', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codex-auth-executor-result-'));
   writeFixture(root);
@@ -182,7 +303,7 @@ test('executor claim-assignment and report-result use the sqlite authority path'
       '--result-branch',
       'results/demo-flow/lane-1',
       '--verification-summary',
-      'node --test plugins/parallel-lane-dev/tests/pld-executor.test.js',
+      'node --test plugins/parallel-lane-dev/tests/pld-tool.test.js',
       '--json',
     ),
   );
@@ -263,7 +384,7 @@ test('legacy review and intake helpers read executor-backed lane outcomes after 
     '--result-branch',
     'results/demo-flow/lane-1-review',
     '--verification-summary',
-    'node --test plugins/parallel-lane-dev/tests/pld-executor.test.js',
+    'node --test plugins/parallel-lane-dev/tests/pld-tool.test.js',
     '--json',
   );
 
@@ -297,7 +418,7 @@ test('legacy review and intake helpers read executor-backed lane outcomes after 
     '--result-branch',
     'results/demo-flow/lane-1-final',
     '--verification-summary',
-    'node --test plugins/parallel-lane-dev/tests/pld-executor.test.js',
+    'node --test plugins/parallel-lane-dev/tests/pld-tool.test.js',
     '--json',
   );
 

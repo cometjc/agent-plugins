@@ -1,6 +1,6 @@
 # PLD Directory Rules
 
-- In this monorepo the executor entrypoint is `plugins/parallel-lane-dev/scripts/pld-executor.cjs`; in repos that use a root `PLD/` tree it is `PLD/scripts/pld-executor.cjs`. Both pair with `.pld/executor.sqlite` as the only canonical PLD execution interface and state.
+- In this monorepo the executor entrypoint is `plugins/parallel-lane-dev/scripts/pld-tool.cjs`; in repos that use a root `PLD/` tree it is `PLD/scripts/pld-tool.cjs`. Both pair with `.pld/executor.sqlite` as the only canonical PLD execution interface and state.
 - Coordinators and subagents exchange facts only via executor CLI/API plus worktree branch / result branch; do not treat markdown, `events.ndjson`, `lane-*.json`, or thread prose as authoritative state channels.
 - `plan/` must not hold live plans. If `plan/*.md` still exists, run executor import/cleanup before `pld-go` or dispatch.
 - Each state dimension has a single source of truth, currently executor SQLite:

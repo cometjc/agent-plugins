@@ -4,7 +4,7 @@ const {computeExecutionSchedule, resolveProjectRoot} = require('./pld-lib.cjs');
 const {
   buildScheduleFromExecutor,
   hasExecutorDb,
-} = require('./pld-executor-lib.cjs');
+} = require('./pld-tool-lib.cjs');
 const {prepareExecutionState} = require('./pld-envelope.cjs');
 
 function parseArgs(argv) {

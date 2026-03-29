@@ -8,7 +8,8 @@
     "node": ">=18"
   },
   "scripts": {
-    "test:pld": "node --test plugins/parallel-lane-dev/tests/pld-executor.test.js plugins/parallel-lane-dev/tests/pld-automation.test.js",
+    "render:pld-flowchart": "node scripts/render-pld-flowchart-readme.mjs",
+    "test:pld": "node --test plugins/parallel-lane-dev/tests/pld-tool.test.js plugins/parallel-lane-dev/tests/pld-automation.test.js",
     "validate:plugins": "node scripts/validate-template.mjs",
     "pld:scoreboard:refresh": "node plugins/parallel-lane-dev/scripts/pld-refresh-scoreboard.cjs",
     "pld:probe": "node plugins/parallel-lane-dev/scripts/pld-probe-lane.cjs",
@@ -30,9 +31,16 @@
     "pld:compose": "node plugins/parallel-lane-dev/scripts/pld-compose-message.cjs",
     "pld:telemetry:summarize": "node plugins/parallel-lane-dev/scripts/pld-summarize-telemetry.cjs",
     "pld:telemetry:review": "node plugins/parallel-lane-dev/scripts/pld-render-telemetry-review.cjs",
-    "pld:executor": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs",
-    "pld:executor:import": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs import-plans",
-    "pld:executor:audit": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs audit",
-    "pld:executor:go": "node plugins/parallel-lane-dev/scripts/pld-executor.cjs go"
+    "pld:tool": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs",
+    "pld:tool:import": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs --role coordinator import-plans",
+    "pld:tool:audit": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs audit",
+    "pld:tool:go": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs --role coordinator go",
+    "pld:executor": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs",
+    "pld:executor:import": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs --role coordinator import-plans",
+    "pld:executor:audit": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs audit",
+    "pld:executor:go": "node plugins/parallel-lane-dev/scripts/pld-tool.cjs --role coordinator go"
+  },
+  "devDependencies": {
+    "beautiful-mermaid": "^1.1.3"
   }
 }
