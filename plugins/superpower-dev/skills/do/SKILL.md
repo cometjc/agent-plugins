@@ -22,6 +22,9 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 7. After finishing each plan, automatically converge back to `main` and continue the next queued plan when the convergence path is single, low-risk, and reversible.
    - Example: worktree branch is fully verified, merge/cherry-pick path is unambiguous, and no conflict is detected.
 8. Only pause for user confirmation when convergence strategy is ambiguous (merge vs rebase/cherry-pick), conflicts occur, or verification failed.
+9. For direct governance updates to this skill (for example: `update $superpower-dev:do ...`) with a single explicit target and low-risk, doc-only edits, auto-commit after verification without waiting for extra confirmation.
+   - Scope guard: stage and commit only files required by the requested governance update.
+   - If unrelated modified files exist, do not revert them; exclude them from the commit unless explicitly requested.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -82,6 +85,7 @@ Request arrives
   - auto-converge work back to `main` when there is exactly one safe path
   - immediately start the next queued plan without waiting for an extra "proceed"
 - If convergence is ambiguous or risky, ask once via AUQ and continue after answer.
+- For direct `superpower-dev:do` governance edits that satisfy Core Rule 9, auto-commit with a Conventional Commit message immediately after verification.
 
 ## Confirmation Template
 
