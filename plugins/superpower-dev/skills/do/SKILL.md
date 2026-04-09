@@ -38,6 +38,9 @@ Route the user request to the right Superpowers workflow stage and enforce execu
    - If implemented with `subagent-driven-development`, always merge back to `main` locally.
    - Otherwise, commit implementation directly on `main`.
 17. After local merge to `main` or direct commit on `main`, remove finished plan files that were executed in this run.
+18. AUQ default flow must use `ask_user_questions(nonBlocking: true)` first, capture `session_id`, then call `get_answered_questions(session_id, blocking: true)`.
+19. If `get_answered_questions(..., blocking: true)` times out, convert the waiting branch into `PARTIAL_PROGRESS`: keep the unresolved question open, detach blocked steps, and continue planning/executing independent steps in `RUNNING`.
+20. While any `WAITING_AUQ` items exist, re-check them with `get_answered_questions(session_id, blocking: false)` after each merged implementation unit or after the user indicates they replied (for example: `answered`, `replied`); when an answer is found, resume the blocked branch immediately.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -85,6 +88,16 @@ Request arrives
 │  │     │  └─ fail -> AUQ fallback selection
 │  │     └─ no -> continue execution
 │  │
+│  │  AUQ state handling:
+│  │  ├─ ask_user_questions(nonBlocking: true) -> session_id
+│  │  ├─ get_answered_questions(session_id, blocking: true)
+│  │  │  ├─ answered -> continue normal flow
+│  │  │  └─ timeout  -> move blocked branch to WAITING_AUQ/PARTIAL_PROGRESS, continue independent RUNNING work
+│  │  └─ on each merge OR user "answered/replied" signal:
+│  │     └─ get_answered_questions(session_id, blocking: false)
+│  │        ├─ answered -> resume blocked branch
+│  │        └─ pending  -> keep WAITING_AUQ and continue RUNNING
+│  │
 │  │  After one plan completes:
 │  │  ├─ Verification passed?
 │  │  │  ├─ no  -> report failure and request recovery choice
@@ -106,6 +119,30 @@ Request arrives
 │     │     │  └─ no  -> brainstorming
 ```
 
+## AUQ Runtime State Machine
+
+Use explicit runtime states for AUQ-gated execution:
+
+- `RUNNING`: Active execution of steps that do not require unresolved AUQ answers.
+- `WAITING_AUQ`: A pending AUQ session exists and at least one branch is answer-gated.
+- `PARTIAL_PROGRESS`: Timeout occurred on blocking wait; blocked branch remains open while independent work continues.
+- `RESUME_READY`: A previously pending AUQ received an answer and the blocked branch can re-enter execution.
+
+State transitions:
+
+1. `RUNNING -> WAITING_AUQ`
+   - Trigger: AUQ question submitted for required clarification.
+2. `WAITING_AUQ -> RUNNING`
+   - Trigger: Answer received during blocking wait.
+3. `WAITING_AUQ -> PARTIAL_PROGRESS`
+   - Trigger: `get_answered_questions(session_id, blocking: true)` timeout.
+4. `PARTIAL_PROGRESS -> RUNNING`
+   - Trigger: Independent branch extraction complete and actionable steps remain.
+5. `PARTIAL_PROGRESS -> RESUME_READY`
+   - Trigger: non-blocking AUQ re-check finds an answer.
+6. `RESUME_READY -> RUNNING`
+   - Trigger: blocked branch is re-planned and execution resumes.
+
 ## Execution Guardrails
 
 - `subagent-driven-development`:
@@ -125,6 +162,20 @@ Request arrives
 - `executing-plans`:
   - Single-thread path; can run directly in current execution session.
   - If branch/worktree risk is detected, still prefer isolated worktree.
+
+### AUQ Timeout Guardrail
+
+When blocking AUQ wait times out:
+
+1. Keep the original question as unresolved state (`WAITING_AUQ`), do not discard or rewrite it.
+2. Split the plan into:
+   - blocked slice (depends on AUQ answer),
+   - independent slice (can proceed safely without AUQ answer).
+3. Re-plan independent slice immediately and continue in `RUNNING`.
+4. Re-check all pending AUQ sessions with `get_answered_questions(session_id, blocking: false)`:
+   - after each merged implementation unit, or
+   - after explicit user reply signal (`answered`, `replied`, or equivalent).
+5. Once answered, switch to `RESUME_READY`, re-attach blocked slice, and continue execution.
 
 ## Completion Chaining
 
@@ -161,6 +212,7 @@ For each executed plan, capture:
 - Selected artifact path and why it was chosen.
 - Preflight result (`already_applied` or `action_required`) with command evidence.
 - Executor AUQ result (when applicable).
+- AUQ runtime state transitions when timeout/recovery occurs (`WAITING_AUQ`, `PARTIAL_PROGRESS`, `RESUME_READY`).
 - Verification commands and outcomes.
 - Feedback stage result (`findings` or `no_findings`) and report/plan path.
 
