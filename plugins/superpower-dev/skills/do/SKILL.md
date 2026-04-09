@@ -219,7 +219,7 @@ When blocking AUQ wait times out:
 2. Split the plan into:
    - blocked slice (depends on AUQ answer) — store `{ plan_file, section }` reference in entry's `blocked_slices`,
    - independent slice (can proceed without AUQ answer).
-3. Re-plan independent slice immediately and continue in `RUNNING`. Launch `bash sleep 120` in background (best-effort heartbeat).
+3. Re-plan independent slice immediately and continue in `RUNNING`. Launch `bash sleep 120` in background (best-effort heartbeat; if context resets before sleep completes, the next user input serves as the fallback trigger).
 4. On each trigger (merged unit / user reply signal / sleep complete): batch re-check all `pending` and `timeout` entries — one `get_answered_questions(entry.session_id, blocking: false)` call per entry.
 5. Once answered: update `status → answered`; derive macro state as `RESUME_READY`; re-attach `blocked_slices` from entry; set `consumed_at` and `status → "consumed"` when slice execution begins.
 
@@ -228,9 +228,10 @@ When blocking AUQ wait times out:
 When fix-errors dispatch and RESUME_READY occur simultaneously:
 
 1. Dispatch fix-errors subagent first (background, worktree-isolated).
-2. Evaluate concurrency:
+2. Evaluate concurrency (worktrees overlap if they share any target file path or operate on the same branch):
    - Non-overlapping worktrees → RESUME_READY may proceed concurrently.
    - Overlapping worktrees → defer RESUME_READY until fix-errors completes.
+   - If fix-errors worktree is not yet established, treat as non-overlapping and proceed.
 
 ## Completion Chaining
 
