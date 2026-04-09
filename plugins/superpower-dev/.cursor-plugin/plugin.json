@@ -1,0 +1,19 @@
+{
+  "name": "superpower-dev",
+  "displayName": "Superpower Dev",
+  "version": "0.1.0",
+  "description": "Governance entry skill `do` for selecting Superpowers planning and execution workflows.",
+  "author": {
+    "name": "superpower-dev contributors"
+  },
+  "license": "MIT",
+  "keywords": [
+    "superpowers",
+    "governance",
+    "workflow",
+    "executor",
+    "skills"
+  ],
+  "homepage": "https://open-plugins.com",
+  "repository": "https://open-plugins.com"
+}

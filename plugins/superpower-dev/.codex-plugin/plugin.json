@@ -1,0 +1,43 @@
+{
+  "name": "superpower-dev",
+  "version": "0.1.0",
+  "description": "Governance entry skill `do` for selecting Superpowers planning and execution workflows.",
+  "author": {
+    "name": "superpower-dev contributors",
+    "url": "https://open-plugins.com"
+  },
+  "homepage": "https://open-plugins.com",
+  "repository": "https://open-plugins.com",
+  "license": "MIT",
+  "keywords": [
+    "superpowers",
+    "governance",
+    "workflow",
+    "executor",
+    "skills"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Superpower Dev",
+    "shortDescription": "Governance entry skill for Superpowers workflow routing.",
+    "longDescription": "Provides the `do` skill as a governance entrypoint to route requests across brainstorming, planning, and execution skills with executor and worktree guardrails.",
+    "developerName": "superpower-dev contributors",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://open-plugins.com",
+    "privacyPolicyURL": "https://open-plugins.com",
+    "termsOfServiceURL": "https://open-plugins.com",
+    "defaultPrompt": [
+      "Use `do` to route this task through the right Superpowers workflow.",
+      "Use `do` to choose between subagent-driven-development and executing-plans.",
+      "Use `do` to infer the relevant spec/plan and continue."
+    ],
+    "brandColor": "#2563EB",
+    "composerIcon": "./assets/icon.png",
+    "logo": "./assets/logo.png",
+    "screenshots": []
+  }
+}

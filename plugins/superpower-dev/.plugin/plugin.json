@@ -1,0 +1,19 @@
+{
+  "name": "superpower-dev",
+  "version": "0.1.0",
+  "description": "Open Plugin: governance entry skill `do` that routes Superpowers workflows and executor decisions.",
+  "author": {
+    "name": "superpower-dev contributors",
+    "url": "https://open-plugins.com"
+  },
+  "homepage": "https://open-plugins.com",
+  "repository": "https://open-plugins.com",
+  "license": "MIT",
+  "keywords": [
+    "superpowers",
+    "governance",
+    "workflow",
+    "executor",
+    "skills"
+  ]
+}
