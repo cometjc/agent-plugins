@@ -28,7 +28,9 @@ Five issues found in the current AUQ state machine:
 {
   "question_id": "auq-001",
   "session_id": "sess-abc123",
-  "blocked_slices": ["slice-3", "slice-5"],
+  "blocked_slices": [
+    { "plan_file": "docs/superpowers/plans/foo.md", "section": "## Step 3" }
+  ],
   "status": "pending",
   "submitted_at": "2026-04-10T10:00:00Z",
   "last_checked_at": null,
@@ -38,6 +40,8 @@ Five issues found in the current AUQ state machine:
 
 **`status` values:** `pending` | `answered` | `timeout` | `consumed`  
 (`consumed` = `consumed_at` is set; subsequent polls skip this entry)
+
+**`blocked_slices` durability:** Each entry must store a durable reference — `plan_file` path and `section` heading (or line range) — so that on crash/restart the coordinator can re-read the plan document and reconstruct the slice content without relying on in-memory context.
 
 ### Persistence Location
 
@@ -64,11 +68,12 @@ Five issues found in the current AUQ state machine:
 
 **Rule 20 — Batch polling**
 
-> While any `auq-registry.json` entries have `status` `pending` or `timeout`, on each trigger point — merged implementation unit, explicit user reply signal (`answered`, `replied`, etc.), or background `bash sleep 120` completion (best-effort; if context resets, next user input serves as trigger) — perform a **batch re-check**: call `get_answered_questions(session_id, blocking: false)` for ALL `pending` and `timeout` entries in one pass.
+> While any `auq-registry.json` entries have `status` `pending` or `timeout`, on each trigger point — merged implementation unit, explicit user reply signal (`answered`, `replied`, etc.), or background `bash sleep 120` completion (best-effort; if context resets, next user input serves as trigger) — perform a **batch re-check**: for each `pending` or `timeout` entry, call `get_answered_questions(entry.session_id, blocking: false)` individually, one call per entry.
 >
-> For each entry found answered: update `status → answered`; re-attach its `blocked_slices`.  
-> After the batch scan, if any entries transitioned to `answered`, derive macro state as `RESUME_READY` and resume blocked slices.  
-> On first resume per entry, set `consumed_at`; subsequent passes skip entries where `consumed_at` is set.
+> For each entry found answered: update `status → answered`.  
+> After the batch scan completes, re-derive macro state from table (any `status=answered` AND `consumed_at=null` → `RESUME_READY`; this takes priority over `PARTIAL_PROGRESS` — if both conditions coexist, handle `RESUME_READY` first).  
+> For each `RESUME_READY` entry: re-attach `blocked_slices` (read slice content from `plan_file`/`section` in the entry) and begin execution; set `consumed_at` when that slice's execution begins.  
+> Subsequent passes skip entries where `consumed_at` is set.
 
 **Rule 21 — fix-errors mode** *(unchanged)*
 
@@ -143,9 +148,10 @@ Replaces the existing AUQ state handling block in the Decision Tree:
 │  │                 launch bash sleep 120 (background heartbeat)
 │  │                 continue RUNNING with independent_slices
 │  └─ on trigger (merge / user signal / sleep complete):
-│     batch re-check all pending/timeout entries (blocking: false)
-│     ├─ any answered -> RESUME_READY: re-attach blocked_slices, set consumed_at
+│     batch re-check: per-entry get_answered_questions(entry.session_id, blocking: false)
+│     ├─ any answered -> RESUME_READY: re-attach blocked_slices, set consumed_at on slice start
 │     └─ all still pending/timeout -> keep WAITING_AUQ/PARTIAL_PROGRESS, continue RUNNING
+│        (if context reset, sleep trigger lost; next user input serves as fallback trigger)
 │
 │  fix-errors + RESUME_READY concurrency:
 │  ├─ fix-errors dispatched first (priority)
