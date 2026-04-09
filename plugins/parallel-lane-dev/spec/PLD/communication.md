@@ -21,7 +21,8 @@
 
 - `RUNNING`
 - `BLOCKED`
-- `READY_FOR_REVIEW`
+- `READY_TO_COMMIT` — implementer finished and verified; coordinator should create the lane-item commit (default PLD flow).
+- `READY_FOR_REVIEW` — implementer already committed (self-commit lanes only); result branch ready for spec review.
 - `DONE`
 - `FAILED`
 - `CANCELLED`
@@ -50,11 +51,11 @@
 
 - In this repo's default PLD flow, sub-agents finish by reporting a single normalized status plus a `result_branch`.
 - A sub-agent should not run `git commit` itself unless the lane explicitly authorizes self-commit.
-- When implementation and verification are finished, the implementer should report `READY_FOR_REVIEW` and include:
+- When implementation and verification are finished, the implementer should report the appropriate status and include:
   - `result_branch`
   - verification already completed
   - any blocker/probe note that still matters to review or integration
-- Coordinator should treat `READY_FOR_REVIEW` as the normal end-of-implementation handoff.
+- In the default PLD flow (coordinator-commit), coordinator should treat `READY_TO_COMMIT` as the normal end-of-implementation handoff, then create the lane-item commit before routing to spec review. In self-commit lanes (explicitly marked), the implementer commits and reports `READY_FOR_REVIEW` directly.
 - Review, commit intake, and merge remain coordinator/executor responsibilities after that handoff.
 
 ## Blocker Reporting
