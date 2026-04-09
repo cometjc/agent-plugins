@@ -37,6 +37,7 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 16. After implementation is complete:
    - If implemented with `subagent-driven-development`, always merge back to `main` locally.
    - Otherwise, commit implementation directly on `main`.
+17. After local merge to `main` or direct commit on `main`, remove finished plan files that were executed in this run.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -93,6 +94,9 @@ Request arrives
 │  │  ├─ Convergence path to main unambiguous and verified?
 │  │  │  ├─ yes -> apply completion policy (subagent flow: local merge to main; non-subagent flow: commit on main), then continue next queued plan
 │  │  │  └─ no  -> ask AUQ confirmation for convergence strategy
+│  │  ├─ Integration completed on main?
+│  │  │  ├─ yes -> remove finished plan files for this run, then continue next queued plan
+│  │  │  └─ no  -> stop and resolve integration first
 │  └─ no
 │     ├─ Has approved spec?
 │     │  ├─ yes -> writing-plans
@@ -130,6 +134,7 @@ Request arrives
   - enforce completion policy:
     - `subagent-driven-development` -> always merge back to `main` locally
     - non-`subagent-driven-development` -> commit implementation directly on `main`
+  - after integration on `main`, remove finished plan files executed in this run
   - immediately start the next queued plan without waiting for an extra "proceed"
 - If convergence is ambiguous or risky, ask once via AUQ and continue after answer.
 - For direct `superpower-dev:do` governance edits that satisfy Core Rule 9, auto-commit with a Conventional Commit message immediately after verification.
