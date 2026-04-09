@@ -112,7 +112,10 @@ Optional: `--project-root <path>`.
 
 **Parallelism:** At most **one** active implementer per lane item per worktree; parallel coders only on **non-overlapping** lanes.
 
-**Suggested loop:** Main Agent **`import-plans`** → spawn **`@pld-coder`** → coder **`claim-assignment`** → worktree + MVC → coder **`report-result`** → Main Agent **lane-item commit** → spawn **`@pld-reviewer`** → reviewer **`report-result`** (spec then quality) → Main Agent **`audit`** batch → **`report-result`/refill** as policy → repeat → **Main Agent merge** when ready.
+**Suggested loop:** Main Agent **`import-plans`** → **`go`** → **`pld:provision-worktree --execution <id> --lane <Lane N>`** (per lane, before coder dispatch) → spawn **`@pld-coder`** → coder **`claim-assignment`** → MVC in provisioned worktree → coder **`report-result`** → Main Agent **lane-item commit** → spawn **`@pld-reviewer`** → reviewer **`report-result`** (spec then quality) → Main Agent **`audit`** batch → **`report-result`/refill** as policy → repeat → **Main Agent merge** when ready.
+
+> If `pld:provision-worktree` reports `gitignoreStaged: true`, commit `.gitignore` before dispatching the coder.
+> If `baselinePassed: false`, investigate before dispatching.
 
 ### Parallel review pipeline
 
