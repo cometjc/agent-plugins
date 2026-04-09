@@ -14,6 +14,11 @@
       "name": "parallel-lane-dev",
       "source": "parallel-lane-dev",
       "description": "Parallel subagent lanes + PLD executor skill (SQLite state, worktrees, pld-go)"
+    },
+    {
+      "name": "superpower-dev",
+      "source": "superpower-dev",
+      "description": "Governance entry skill `do` for Superpowers routing and executor guardrails"
     }
   ]
 }
