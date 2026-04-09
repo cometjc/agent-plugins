@@ -407,6 +407,16 @@ function emptyInsightSummary() {
   };
 }
 
+function listExecutionNames(projectRoot = resolveProjectRoot()) {
+  if (!hasExecutorDb(projectRoot)) {
+    return [];
+  }
+  return runSqlRows(
+    projectRoot,
+    'select execution_name from executions order by execution_name;',
+  ).map(([name]) => name);
+}
+
 function listLanes(projectRoot = resolveProjectRoot(), execution) {
   return runSqlRows(
     projectRoot,
@@ -907,6 +917,8 @@ module.exports = {
   hasExecutorDb,
   importLegacyExecutionState,
   importPlanFiles,
+  listExecutionNames,
+  listLanes,
   reportResult,
   resolveExecutorDbPath,
   suggestRefillFromExecutor,

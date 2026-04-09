@@ -526,6 +526,43 @@ test('legacy schedule and refill helpers read executor-backed state after migrat
   assert.equal(refill.nextItem, 'Route lane result exchange through result branches');
 });
 
+test('listExecutionNames returns all execution names from executor DB', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-list-execs-'));
+  writeFixture(root);
+  // Import plans to populate the DB
+  runExecutor(root, 'import-plans', '--json');
+
+  // Require the lib directly (not through pld-tool.cjs)
+  const toolLibPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool-lib.cjs');
+  delete require.cache[require.resolve(toolLibPath)];
+  const {listExecutionNames} = require(toolLibPath);
+
+  const names = listExecutionNames(root);
+  assert.ok(Array.isArray(names), 'should return an array');
+  assert.ok(names.length >= 1, 'should have at least one execution after import');
+  assert.ok(names.every((name) => typeof name === 'string'), 'all names must be strings');
+});
+
+test('listExecutionNames returns empty array when executor DB has no executions', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-list-execs-empty-'));
+  writeFixture(root);
+  // Do NOT import plans — executor DB may not exist yet
+
+  const toolLibPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool-lib.cjs');
+  delete require.cache[require.resolve(toolLibPath)];
+  const {listExecutionNames, hasExecutorDb} = require(toolLibPath);
+
+  if (!hasExecutorDb(root)) {
+    // DB doesn't exist yet — listExecutionNames should return [] gracefully
+    const names = listExecutionNames(root);
+    assert.deepStrictEqual(names, []);
+  } else {
+    // DB exists but no executions imported
+    const names = listExecutionNames(root);
+    assert.ok(Array.isArray(names));
+  }
+});
+
 test('--help prints usage without role check', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-help-'));
   writeFixture(root);
