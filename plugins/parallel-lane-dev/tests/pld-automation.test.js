@@ -3329,6 +3329,21 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
 
+test('provisionWorktree returns lane-not-found for unknown lane', () => {
+  const {provisionWorktree} = freshRequire(
+    'plugins/parallel-lane-dev/scripts/pld-provision-worktree.cjs',
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-provision-'));
+  // No executor DB — expect a clear error, not a crash
+  assert.throws(
+    () => provisionWorktree(root, 'no-such-exec', 'Lane 1'),
+    (err) => {
+      assert.match(String(err.message), /not found|no.*lane|executor/i);
+      return true;
+    },
+  );
+});
+
 test('buildDispatchPlan --all-executions merges queues from all executions', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-dispatch-all-'));
   setupTempGitRepo(root);

@@ -26,6 +26,7 @@
     "pld:launch": "node plugins/parallel-lane-dev/scripts/pld-launch-active-set.cjs",
     "pld:review": "node plugins/parallel-lane-dev/scripts/pld-drive-review-loop.cjs",
     "pld:intake": "node plugins/parallel-lane-dev/scripts/pld-intake-ready-to-commit.cjs",
+    "pld:provision-worktree": "node plugins/parallel-lane-dev/scripts/pld-provision-worktree.cjs",
     "pld:autopilot": "node plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs",
     "pld:autopilot:all": "node plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs --all-executions",
     "pld:dispatch-plan": "node plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs",
