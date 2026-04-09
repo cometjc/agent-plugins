@@ -3329,6 +3329,36 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
 
+test('pld-run-coordinator-loop --all-executions outputs multi-execution summary', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-all-execs-'));
+  setupTempGitRepo(root);
+
+  const toolPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs');
+  for (const execId of ['multi-exec-a', 'multi-exec-b']) {
+    const execDir = path.join(root, 'PLD', 'executions', execId);
+    fs.mkdirSync(execDir, {recursive: true});
+    fs.writeFileSync(
+      path.join(execDir, 'lane-1.md'),
+      [
+        `# Lane 1 - ${execId}`,
+        `> PLD worktree: \`.worktrees/lane-1-${execId}\``,
+        '> Lane-local verification: `echo ok`',
+        '## M',
+        '- [ ] Step',
+      ].join('\n'),
+      'utf8',
+    );
+  }
+  run('node', [toolPath, '--project-root', root, '--role', 'coordinator', 'import-plans', '--json'], root);
+
+  const loopScript = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-run-coordinator-loop.cjs');
+  const out = run('node', [loopScript, '--project-root', root, '--all-executions'], root);
+
+  assert.match(out, /multi-exec-a/, 'output must mention first execution');
+  assert.match(out, /multi-exec-b/, 'output must mention second execution');
+  assert.match(out, /Global max active/, 'output must show global cap');
+});
+
 test('runMultiExecutionCoordinatorLoop returns per-execution results', () => {
   const {runMultiExecutionCoordinatorLoop} = freshRequire(
     'plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs',

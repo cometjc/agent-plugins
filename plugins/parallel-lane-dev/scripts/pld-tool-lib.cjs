@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {
+  listExecutionLanes,
   loadLanePlan,
   loadScoreboardTable,
   resolvePldTreeDir,
@@ -258,34 +259,32 @@ values (${planId}, ${item.ordinal}, ${sqliteEscape(item.body)}, ${sqliteEscape(i
 function importLegacyExecutionState(projectRoot = resolveProjectRoot()) {
   ensureExecutorDb(projectRoot);
   const scoreboardPath = resolveScoreboardPath(projectRoot);
-  if (!fs.existsSync(scoreboardPath)) {
-    return {importedExecutionCount: 0, importedLaneCount: 0, importedEventCount: 0};
-  }
-
-  const table = loadScoreboardTable(fs.readFileSync(scoreboardPath, 'utf8'), scoreboardPath);
   const executions = new Set();
   let importedLaneCount = 0;
   let importedEventCount = 0;
   const now = new Date().toISOString();
 
-  for (const row of table.objects) {
-    executions.add(row.Execution);
-    runSql(
-      projectRoot,
-      `
+  if (fs.existsSync(scoreboardPath)) {
+    const table = loadScoreboardTable(fs.readFileSync(scoreboardPath, 'utf8'), scoreboardPath);
+
+    for (const row of table.objects) {
+      executions.add(row.Execution);
+      runSql(
+        projectRoot,
+        `
 insert or ignore into executions (execution_name, imported_at)
 values (${sqliteEscape(row.Execution)}, ${sqliteEscape(now)});
-      `,
-    );
+        `,
+      );
 
-    const lanePlan = loadLanePlan(projectRoot, row.Execution, row.Lane);
-    const verification = lanePlan?.verificationCommands?.length
-      ? JSON.stringify(lanePlan.verificationCommands)
-      : JSON.stringify(parseCodeValue(row['Last verification']) ? [parseCodeValue(row['Last verification'])] : []);
+      const lanePlan = loadLanePlan(projectRoot, row.Execution, row.Lane);
+      const verification = lanePlan?.verificationCommands?.length
+        ? JSON.stringify(lanePlan.verificationCommands)
+        : JSON.stringify(parseCodeValue(row['Last verification']) ? [parseCodeValue(row['Last verification'])] : []);
 
-    runSql(
-      projectRoot,
-      `
+      runSql(
+        projectRoot,
+        `
 insert or replace into lanes (
   execution_name,
   lane_name,
@@ -318,26 +317,26 @@ values (
   'main',
   ${sqliteEscape(row.Phase === 'done' ? 'DONE' : null)}
 );
-      `,
-    );
-    importedLaneCount += 1;
+        `,
+      );
+      importedLaneCount += 1;
 
-    const numericLane = row.Lane.match(/(\d+)/)?.[1];
-    const eventPath = numericLane
-      ? path.join(resolvePldTreeDir(projectRoot), 'state', row.Execution, 'events.ndjson')
-      : null;
-    if (eventPath && fs.existsSync(eventPath)) {
-      const lines = fs
-        .readFileSync(eventPath, 'utf8')
-        .split('\n')
-        .filter(Boolean)
-        .map((line) => JSON.parse(line))
-        .filter((entry) => entry.execution === row.Execution && entry.lane === row.Lane);
+      const numericLane = row.Lane.match(/(\d+)/)?.[1];
+      const eventPath = numericLane
+        ? path.join(resolvePldTreeDir(projectRoot), 'state', row.Execution, 'events.ndjson')
+        : null;
+      if (eventPath && fs.existsSync(eventPath)) {
+        const lines = fs
+          .readFileSync(eventPath, 'utf8')
+          .split('\n')
+          .filter(Boolean)
+          .map((line) => JSON.parse(line))
+          .filter((entry) => entry.execution === row.Execution && entry.lane === row.Lane);
 
-      for (const entry of lines) {
-        runSql(
-          projectRoot,
-          `
+        for (const entry of lines) {
+          runSql(
+            projectRoot,
+            `
 insert into lane_events (execution_name, lane_name, event_type, event_json, imported_at)
 values (
   ${sqliteEscape(entry.execution)},
@@ -346,9 +345,60 @@ values (
   ${sqliteEscape(JSON.stringify(entry))},
   ${sqliteEscape(now)}
 );
-          `,
+            `,
+          );
+          importedEventCount += 1;
+        }
+      }
+    }
+  }
+
+  // Also scan PLD/executions/ directories for execution names and lane plans
+  // so that listExecutionNames works even when no scoreboard is present.
+  const executionsDir = path.join(resolvePldTreeDir(projectRoot), 'executions');
+  if (fs.existsSync(executionsDir)) {
+    for (const entry of fs.readdirSync(executionsDir)) {
+      const entryPath = path.join(executionsDir, entry);
+      if (!fs.statSync(entryPath).isDirectory()) {
+        continue;
+      }
+      const execution = entry;
+      if (!executions.has(execution)) {
+        executions.add(execution);
+        runSql(
+          projectRoot,
+          `insert or ignore into executions (execution_name, imported_at) values (${sqliteEscape(execution)}, ${sqliteEscape(now)});`,
         );
-        importedEventCount += 1;
+        for (const laneName of listExecutionLanes(projectRoot, execution)) {
+          const lanePlan = loadLanePlan(projectRoot, execution, laneName);
+          if (!lanePlan) {
+            continue;
+          }
+          const firstPending = lanePlan.actionableItems.find((item) => !item.checked);
+          const phase = firstPending ? 'queued' : 'parked';
+          const verification = JSON.stringify(lanePlan.verificationCommands || []);
+          runSql(
+            projectRoot,
+            `
+insert or ignore into lanes (
+  execution_name, lane_name, ownership, current_item, phase,
+  last_verification, worktree_path, lane_branch, base_branch
+)
+values (
+  ${sqliteEscape(execution)},
+  ${sqliteEscape(laneName)},
+  ${sqliteEscape(lanePlan.ownershipEntries?.join(', ') || null)},
+  ${sqliteEscape(firstPending?.text || null)},
+  ${sqliteEscape(phase)},
+  ${sqliteEscape(verification)},
+  ${sqliteEscape(lanePlan.worktreePath || null)},
+  ${sqliteEscape(laneBranchName(execution, laneName))},
+  'main'
+);
+            `,
+          );
+          importedLaneCount += 1;
+        }
       }
     }
   }

@@ -21,6 +21,11 @@ function parseArgs(argv) {
     if (value === '--execution') {
       args.execution = argv[index + 1];
       index += 1;
+    } else if (value === '--all-executions') {
+      args.allExecutions = true;
+    } else if (value === '--project-root') {
+      args.projectRoot = argv[index + 1];
+      index += 1;
     } else if (value === '--max-active') {
       args.maxActive = Number(argv[index + 1]);
       index += 1;
@@ -193,15 +198,53 @@ function renderCoordinatorLoop(result) {
   return lines.join('\n');
 }
 
+function renderMultiExecutionLoop(result) {
+  const lines = [
+    `Global max active: ${result.globalMaxActive}`,
+    `Dry run: ${result.dryRun ? 'yes' : 'no'}`,
+    `Executions: ${result.executions.length}`,
+    `Total idle slots: ${result.totalIdleSlots}`,
+    `Total promoted lanes: ${result.totalPromotedLanes}`,
+    `Total review actions: ${result.totalReviewActions}`,
+    `Total commit intakes: ${result.totalCommitIntakes}`,
+  ];
+  for (const entry of result.executions) {
+    lines.push(`--- ${entry.execution} ---`);
+    lines.push(renderCoordinatorLoop(entry));
+  }
+  return lines.join('\n');
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const projectRoot = args.projectRoot || resolveProjectRoot();
+
+  if (args.allExecutions) {
+    const {listExecutionNames} = require('./pld-tool-lib.cjs');
+    const executions = listExecutionNames(projectRoot);
+    const result = runMultiExecutionCoordinatorLoop(
+      projectRoot,
+      executions,
+      args.maxActive,
+      args['dry-run'],
+    );
+    if (args.json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(`${renderMultiExecutionLoop(result)}\n`);
+    return;
+  }
+
   if (!args.execution) {
     throw new Error(
-      'Usage: node plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs --execution <id> [--max-active <n>] [--dry-run] [--json]',
+      'Usage: node plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs ' +
+      '--execution <id> | --all-executions [--project-root <path>] [--max-active <n>] [--dry-run] [--json]',
     );
   }
+
   const result = runCoordinatorLoop(
-    resolveProjectRoot(),
+    projectRoot,
     args.execution,
     args.maxActive,
     args['dry-run'],
@@ -222,4 +265,5 @@ module.exports = {
   runCoordinatorLoop,
   runMultiExecutionCoordinatorLoop,
   renderCoordinatorLoop,
+  renderMultiExecutionLoop,
 };
