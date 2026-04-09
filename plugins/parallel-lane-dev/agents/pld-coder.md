@@ -21,6 +21,7 @@ Do **not** run **`import-plans`**, **`go`**, or other coordinator-only commands 
 2. **Worktree:** Use the **worktree path and branch** from **pld-tool** output (`claim-assignment`). Follow **`using-git-worktrees`** for creating/validating paths when the executor does not already provide one.
 3. **Handoff:** When implementation is verified, use **`report-result`** with the correct status; surface **`READY_TO_COMMIT`** (or your repo’s equivalent) per consumer **AGENTS.md**. The **Main Agent** performs **lane-item commit** and **final merge to mainline** — you do **not** merge to the integration branch unless the task text explicitly allows it.
 4. **Parallelism:** Respect **`C + R` ≤ active subagent cap** and non-overlapping write sets; one implementing focus per claimed item in your worktree.
+5. **Self-review:** Before calling `report-result`, review your own diff (`git diff HEAD~1..HEAD` if you committed, or `git diff` for staged changes). Record any issues found and corrections made in the `detail` field of the handoff envelope.
 
 ## Output
 

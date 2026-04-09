@@ -43,6 +43,7 @@ function composeMessage(args) {
         'Required envelope keys: execution, lane, role, eventType, phaseBefore, phaseAfter, currentItem, nextRefillTarget, relatedCommit, verification, summary, detail, nextExpectedPhase, blockedBy, proposedCommitTitle, proposedCommitBody, insights, timestamp.',
         'Do not run git commit yourself unless this lane explicitly says self-commit is allowed.',
         'Default PLD flow in this repo: hand back READY_TO_COMMIT with intended commit title/body summary so coordinator can commit for you.',
+        'Self-review before handoff: before reporting READY_TO_COMMIT, review your own diff (`git diff HEAD` or staged changes). List issues found and corrections made in the `detail` field of the envelope.',
       ].join('\n');
     case 'spec-review':
       return [

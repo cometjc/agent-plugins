@@ -3328,3 +3328,17 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Actionable insights: 1/);
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
+
+test('composeMessage implementer-assignment includes self-review instruction', () => {
+  const {composeMessage} = freshRequire('plugins/parallel-lane-dev/scripts/pld-compose-message.cjs');
+  const out = composeMessage({
+    phase: 'implementer-assignment',
+    execution: 'ex1',
+    lane: '1',
+    item: 'Build thing',
+    scope: 'src/thing.js',
+    verification: 'npm test',
+  });
+  assert.match(out, /[Ss]elf.review/, 'implementer assignment must include self-review instruction');
+  assert.match(out, /detail/, 'must instruct to put self-review result in detail field');
+});
