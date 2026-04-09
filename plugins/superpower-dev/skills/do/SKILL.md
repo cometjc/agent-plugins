@@ -34,6 +34,9 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 13. Scope note: AUQ window-focus return behavior is implemented by tmux/window-management tooling and is intentionally out of scope for `superpower-dev:do`.
 14. After each plan execution is verified complete, run a feedback stage before final stop/convergence messaging.
 15. The feedback stage must review (a) current `superpower-dev:do` skill text and (b) the just-finished execution trace, then report concrete gaps and improvements.
+16. After implementation is complete:
+   - If implemented with `subagent-driven-development`, always merge back to `main` locally.
+   - Otherwise, commit implementation directly on `main`.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -88,7 +91,7 @@ Request arrives
 │  │  │           ├─ findings -> create MVC remediation plan and continue convergence rules
 │  │  │           └─ no findings -> continue convergence rules
 │  │  ├─ Convergence path to main unambiguous and verified?
-│  │  │  ├─ yes -> auto-converge to main, continue next queued plan
+│  │  │  ├─ yes -> apply completion policy (subagent flow: local merge to main; non-subagent flow: commit on main), then continue next queued plan
 │  │  │  └─ no  -> ask AUQ confirmation for convergence strategy
 │  └─ no
 │     ├─ Has approved spec?
@@ -124,7 +127,9 @@ Request arrives
 - If request includes multiple explicit plan paths, execute them in the provided order.
 - For each completed plan:
   - verify completion and tests first
-  - auto-converge work back to `main` when there is exactly one safe path
+  - enforce completion policy:
+    - `subagent-driven-development` -> always merge back to `main` locally
+    - non-`subagent-driven-development` -> commit implementation directly on `main`
   - immediately start the next queued plan without waiting for an extra "proceed"
 - If convergence is ambiguous or risky, ask once via AUQ and continue after answer.
 - For direct `superpower-dev:do` governance edits that satisfy Core Rule 9, auto-commit with a Conventional Commit message immediately after verification.
