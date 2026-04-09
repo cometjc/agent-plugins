@@ -3,12 +3,60 @@
 const {resolveProjectRoot} = require('./pld-lib.cjs');
 const {runCoordinatorLoop} = require('./pld-run-coordinator-loop.cjs');
 
+/**
+ * Run buildDispatchPlan for every execution in the DB and merge into one priority queue.
+ * Priorities are preserved; ties are broken by execution name then lane name.
+ */
+function buildAllExecutionsDispatchPlan(projectRoot, maxActive = 4, dryRun = false) {
+  const {listExecutionNames} = require('./pld-tool-lib.cjs');
+  const executions = listExecutionNames(projectRoot);
+  if (executions.length === 0) {
+    return {
+      globalMaxActive: maxActive,
+      dryRun,
+      executionCount: 0,
+      queue: [],
+      idleSlots: maxActive,
+    };
+  }
+
+  const perExecution = Math.max(1, Math.floor(maxActive / executions.length));
+  const perResults = executions.map((execution) =>
+    buildDispatchPlan(projectRoot, execution, perExecution, dryRun),
+  );
+
+  // Merge all queues; annotate each entry with its execution for clarity
+  const merged = perResults.flatMap((result) =>
+    result.queue.map((entry) => ({...entry, execution: result.execution})),
+  );
+  merged.sort(
+    (left, right) =>
+      left.priority - right.priority ||
+      (left.execution || '').localeCompare(right.execution || '') ||
+      left.lane.localeCompare(right.lane),
+  );
+
+  return {
+    globalMaxActive: maxActive,
+    dryRun,
+    executionCount: executions.length,
+    perExecutionResults: perResults,
+    queue: merged,
+    idleSlots: perResults.reduce((sum, r) => sum + r.idleSlots, 0),
+  };
+}
+
 function parseArgs(argv) {
   const args = {maxActive: 4};
   for (let index = 0; index < argv.length; index += 1) {
     const value = argv[index];
     if (value === '--execution') {
       args.execution = argv[index + 1];
+      index += 1;
+    } else if (value === '--all-executions') {
+      args.allExecutions = true;
+    } else if (value === '--project-root') {
+      args.projectRoot = argv[index + 1];
       index += 1;
     } else if (value === '--max-active') {
       args.maxActive = Number(argv[index + 1]);
@@ -131,14 +179,39 @@ function renderDispatchPlan(result) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
+  const projectRoot = args.projectRoot || resolveProjectRoot();
+
+  if (args.allExecutions) {
+    const result = buildAllExecutionsDispatchPlan(projectRoot, args.maxActive, args['dry-run']);
+    if (args.json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return;
+    }
+    const lines = [
+      `Global max active: ${result.globalMaxActive}`,
+      `Executions: ${result.executionCount}`,
+      `Total idle slots: ${result.idleSlots}`,
+      `Merged action queue: ${result.queue.length}`,
+    ];
+    if (result.queue.length > 0) {
+      lines.push('Queue entries:');
+      for (const entry of result.queue) {
+        lines.push(`- [${entry.priority}] ${entry.execution} · ${entry.kind} · ${entry.lane} · ${entry.summary}`);
+      }
+    }
+    process.stdout.write(`${lines.join('\n')}\n`);
+    return;
+  }
+
   if (!args.execution) {
     throw new Error(
-      'Usage: node plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs --execution <id> [--max-active <n>] [--dry-run] [--json]',
+      'Usage: node plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs ' +
+      '--execution <id> | --all-executions [--project-root <path>] [--max-active <n>] [--dry-run] [--json]',
     );
   }
 
   const result = buildDispatchPlan(
-    resolveProjectRoot(),
+    projectRoot,
     args.execution,
     args.maxActive,
     args['dry-run'],
@@ -158,5 +231,6 @@ module.exports = {
   parseArgs,
   priorityForReviewAction,
   buildDispatchPlan,
+  buildAllExecutionsDispatchPlan,
   renderDispatchPlan,
 };

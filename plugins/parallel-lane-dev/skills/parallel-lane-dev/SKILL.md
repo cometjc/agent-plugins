@@ -66,6 +66,8 @@ After **macro steps** (e.g. a spawn wave completes, or N subagent **`report-resu
 - **Main Agent:** batch **`audit`**, **`go`**, **`import-plans`**, **merge**, spawn **`@pld-coder` / `@pld-reviewer`**.
 - **Subagents:** concurrent **`claim-assignment` / `report-result`** into SQLite.
 
+> When managing 2+ active executions, prefer `pld:dispatch-plan:all` for a unified view of what to do next. Slots are distributed evenly (floor division). Use per-execution commands when fine-grained slot control matters.
+
 Both advance work; **only Main Agent** integrates to mainline. Subagents finish first on **pld-tool**; Main Agent **re-reads `audit`** before orchestration decisions.
 
 ## Primary entrypoint
@@ -85,6 +87,8 @@ node plugins/parallel-lane-dev/scripts/pld-tool.cjs [--role coordinator|worker|c
 | `go [--json]` | Advance dispatchable work (**pld-go**) |
 | `claim-assignment --execution <id> --lane <Lane N> [--json]` | Coder claims |
 | `report-result ...` | Coder or reviewer reports (see `--help`) |
+| `pld:autopilot:all` | One-pass coordinator snapshot across **all** active executions |
+| `pld:dispatch-plan:all` | Merged priority action queue across **all** active executions |
 
 Optional: `--project-root <path>`.
 

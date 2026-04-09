@@ -3329,6 +3329,39 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
 
+test('buildDispatchPlan --all-executions merges queues from all executions', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-dispatch-all-'));
+  setupTempGitRepo(root);
+
+  const toolPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs');
+  for (const execId of ['dp-exec-a', 'dp-exec-b']) {
+    const execDir = path.join(root, 'PLD', 'executions', execId);
+    fs.mkdirSync(execDir, {recursive: true});
+    fs.writeFileSync(
+      path.join(execDir, 'lane-1.md'),
+      [
+        `# Lane 1 - ${execId}`,
+        `> PLD worktree: \`.worktrees/lane-1-${execId}\``,
+        '> Lane-local verification: `echo ok`',
+        '## M',
+        '- [ ] Step',
+      ].join('\n'),
+      'utf8',
+    );
+  }
+  run('node', [toolPath, '--project-root', root, '--role', 'coordinator', 'import-plans', '--json'], root);
+
+  const {buildAllExecutionsDispatchPlan} = freshRequire(
+    'plugins/parallel-lane-dev/scripts/pld-build-dispatch-plan.cjs',
+  );
+  const result = buildAllExecutionsDispatchPlan(root, 4, false);
+
+  assert.ok(Array.isArray(result.queue), 'merged queue must be an array');
+  assert.ok(typeof result.globalMaxActive === 'number');
+  assert.ok(typeof result.executionCount === 'number');
+  assert.equal(result.executionCount, 2);
+});
+
 test('pld-run-coordinator-loop --all-executions outputs multi-execution summary', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-all-execs-'));
   setupTempGitRepo(root);
