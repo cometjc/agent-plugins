@@ -215,15 +215,22 @@ State transitions (per entry):
 
 When blocking AUQ wait times out:
 
-1. Keep the original question as unresolved state (`WAITING_AUQ`), do not discard or rewrite it.
+1. Update entry `status → timeout` in `auq-registry.json`. Do not discard or rewrite the original question.
 2. Split the plan into:
-   - blocked slice (depends on AUQ answer),
-   - independent slice (can proceed safely without AUQ answer).
-3. Re-plan independent slice immediately and continue in `RUNNING`.
-4. Re-check all pending AUQ sessions with `get_answered_questions(session_id, blocking: false)`:
-   - after each merged implementation unit, or
-   - after explicit user reply signal (`answered`, `replied`, or equivalent).
-5. Once answered, switch to `RESUME_READY`, re-attach blocked slice, and continue execution.
+   - blocked slice (depends on AUQ answer) — store `{ plan_file, section }` reference in entry's `blocked_slices`,
+   - independent slice (can proceed without AUQ answer).
+3. Re-plan independent slice immediately and continue in `RUNNING`. Launch `bash sleep 120` in background (best-effort heartbeat).
+4. On each trigger (merged unit / user reply signal / sleep complete): batch re-check all `pending` and `timeout` entries — one `get_answered_questions(entry.session_id, blocking: false)` call per entry.
+5. Once answered: update `status → answered`; derive macro state as `RESUME_READY`; re-attach `blocked_slices` from entry; set `consumed_at` and `status → "consumed"` when slice execution begins.
+
+### fix-errors + RESUME_READY Scheduling
+
+When fix-errors dispatch and RESUME_READY occur simultaneously:
+
+1. Dispatch fix-errors subagent first (background, worktree-isolated).
+2. Evaluate concurrency:
+   - Non-overlapping worktrees → RESUME_READY may proceed concurrently.
+   - Overlapping worktrees → defer RESUME_READY until fix-errors completes.
 
 ## Completion Chaining
 
