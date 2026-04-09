@@ -17,6 +17,7 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 4. If a plan requires execution and no subagents are currently active, always ask AUQ to confirm executor choice, with `subagent-driven-development` recommended first.
    - In Codex, use AUQ (`mcp__ask_user_questions__ask_user_questions`) for this confirmation.
    - Do not fall back to plain-text confirmation unless AUQ is unavailable.
+   - Exception: when the request explicitly targets `fix-errors` queue continuation and `todo` is non-empty, skip executor AUQ and enter `subagent-driven-development` directly.
 5. Except single-thread `executing-plans`, enforce `using-git-worktrees` before execution if not already guaranteed.
 6. When the user provides multiple plans in one request, treat them as an ordered queue and continue automatically after each completion.
 7. After finishing each plan, automatically converge back to `main` and continue the next queued plan when the convergence path is single, low-risk, and reversible.
@@ -41,6 +42,7 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 18. AUQ default flow must use `ask_user_questions(nonBlocking: true)` first, capture `session_id`, then call `get_answered_questions(session_id, blocking: true)`.
 19. If `get_answered_questions(..., blocking: true)` times out, convert the waiting branch into `PARTIAL_PROGRESS`: keep the unresolved question open, detach blocked steps, and continue planning/executing independent steps in `RUNNING`.
 20. While any `WAITING_AUQ` items exist, re-check them with `get_answered_questions(session_id, blocking: false)` after each merged implementation unit or after the user indicates they replied (for example: `answered`, `replied`); when an answer is found, resume the blocked branch immediately.
+21. In `fix-errors` mode, if monitor stage discovers or receives new `todo` items, immediately re-route to ordered todo execution and dispatch subagents in background by queue order; do not pause for extra "continue/proceed" prompts unless a defined blocking condition is hit.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -235,6 +237,7 @@ Codex AUQ form (required when available):
 
 - Idea / new behavior / unclear scope -> `brainstorming`
 - Approved spec without plan -> `writing-plans`
+- Explicit `fix-errors` continuation with non-empty todo -> direct `subagent-driven-development` (ordered queue background dispatch, no executor AUQ)
 - Plan with active subagents -> `subagent-driven-development`
 - Plan without active subagents -> ask AUQ executor confirmation (recommend subagent-driven-development)
 - Independent multi-domain subproblems during execution -> `dispatching-parallel-agents`
