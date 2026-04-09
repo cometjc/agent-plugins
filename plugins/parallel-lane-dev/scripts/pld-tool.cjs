@@ -114,6 +114,11 @@ function usage() {
 
 function main(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
+  // --help and no-command are role-independent; print usage and exit cleanly.
+  if (!args.command || args.command === '--help' || args.command === 'help') {
+    process.stdout.write(`${usage()}\n`);
+    return;
+  }
   const projectRoot = args.projectRoot || resolveProjectRoot();
   const role = resolveRole(args);
   assertCommandAllowed(role, args.command);

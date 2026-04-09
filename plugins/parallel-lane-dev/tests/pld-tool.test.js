@@ -525,3 +525,30 @@ test('legacy schedule and refill helpers read executor-backed state after migrat
   assert.equal(refill.outcome, 'not-ready');
   assert.equal(refill.nextItem, 'Route lane result exchange through result branches');
 });
+
+test('--help prints usage without role check', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-help-'));
+  writeFixture(root);
+
+  // --help must work for any role (default worker, reviewer, coordinator)
+  for (const roleArgs of [[], ['--role', 'worker'], ['--role', 'reviewer'], ['--role', 'coordinator']]) {
+    const out = run(
+      'node',
+      [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'), '--project-root', root, ...roleArgs, '--help'],
+      root,
+    );
+    assert.match(out, /Usage:/, `--help should print usage for role args: ${roleArgs.join(' ')}`);
+  }
+});
+
+test('no-command prints usage without role check', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-nocommand-'));
+  writeFixture(root);
+
+  const out = run(
+    'node',
+    [repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs'), '--project-root', root],
+    root,
+  );
+  assert.match(out, /Usage:/);
+});
