@@ -92,13 +92,22 @@ Request arrives
 │  │
 │  │  AUQ state handling:
 │  │  ├─ ask_user_questions(nonBlocking: true) -> session_id
+│  │  │   append entry to auq-registry.json (status: pending)
 │  │  ├─ get_answered_questions(session_id, blocking: true)
-│  │  │  ├─ answered -> continue normal flow
-│  │  │  └─ timeout  -> move blocked branch to WAITING_AUQ/PARTIAL_PROGRESS, continue independent RUNNING work
-│  │  └─ on each merge OR user "answered/replied" signal:
-│  │     └─ get_answered_questions(session_id, blocking: false)
-│  │        ├─ answered -> resume blocked branch
-│  │        └─ pending  -> keep WAITING_AUQ and continue RUNNING
+│  │  │  ├─ answered -> update entry status=answered, continue normal flow
+│  │  │  └─ timeout  -> update entry status=timeout
+│  │  │                 split: blocked_slices vs independent_slices
+│  │  │                 launch bash sleep 120 (background heartbeat)
+│  │  │                 continue RUNNING with independent_slices
+│  │  └─ on trigger (merge / user signal / sleep complete):
+│  │     batch re-check: per-entry get_answered_questions(entry.session_id, blocking: false)
+│  │     ├─ any answered -> RESUME_READY: re-attach blocked_slices, set consumed_at on slice start
+│  │     └─ all still pending/timeout -> keep WAITING_AUQ/PARTIAL_PROGRESS, continue RUNNING
+│  │        (if context reset, sleep trigger lost; next user input serves as fallback trigger)
+│  │
+│  │  fix-errors + RESUME_READY concurrency:
+│  │  ├─ fix-errors dispatched first (priority)
+│  │  └─ RESUME_READY: concurrent if non-overlapping worktrees, else wait
 │  │
 │  │  After one plan completes:
 │  │  ├─ Verification passed?
