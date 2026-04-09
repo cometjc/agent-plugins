@@ -3329,6 +3329,41 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
 
+test('runMultiExecutionCoordinatorLoop returns per-execution results', () => {
+  const {runMultiExecutionCoordinatorLoop} = freshRequire(
+    'plugins/parallel-lane-dev/scripts/pld-run-coordinator-loop.cjs',
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-multi-loop-'));
+  setupTempGitRepo(root);
+
+  const toolPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs');
+  // Create two minimal executions
+  for (const execId of ['exec-a', 'exec-b']) {
+    const execDir = path.join(root, 'PLD', 'executions', execId);
+    fs.mkdirSync(execDir, {recursive: true});
+    fs.writeFileSync(
+      path.join(execDir, 'lane-1.md'),
+      [
+        `# Lane 1 Plan - ${execId}`,
+        `> PLD worktree: \`.worktrees/lane-1-${execId}\``,
+        '> Lane-local verification: `echo ok`',
+        '## M - Work Item',
+        '- [ ] Do something',
+      ].join('\n'),
+      'utf8',
+    );
+  }
+  run('node', [toolPath, '--project-root', root, '--role', 'coordinator', 'import-plans', '--json'], root);
+
+  const result = runMultiExecutionCoordinatorLoop(root, ['exec-a', 'exec-b'], 4);
+
+  assert.ok(Array.isArray(result.executions), 'result.executions must be an array');
+  assert.equal(result.executions.length, 2);
+  assert.ok(result.executions.every((entry) => typeof entry.execution === 'string'));
+  assert.ok(typeof result.totalIdleSlots === 'number');
+  assert.ok(typeof result.globalMaxActive === 'number');
+});
+
 test('composeMessage implementer-assignment includes self-review instruction', () => {
   const {composeMessage} = freshRequire('plugins/parallel-lane-dev/scripts/pld-compose-message.cjs');
   const out = composeMessage({

@@ -80,6 +80,51 @@ function runCoordinatorLoop(projectRoot, execution, maxActive = 4, dryRun = fals
   };
 }
 
+/**
+ * Run the coordinator loop for multiple executions with a shared global cap.
+ * Distributes maxActive slots equally (floor division, minimum 1 per execution).
+ *
+ * @param {string} projectRoot
+ * @param {string[]} executions  - execution IDs to process
+ * @param {number} maxActive     - global active subagent cap
+ * @param {boolean} dryRun
+ */
+function runMultiExecutionCoordinatorLoop(
+  projectRoot,
+  executions,
+  maxActive = 4,
+  dryRun = false,
+) {
+  if (!executions || executions.length === 0) {
+    return {
+      globalMaxActive: maxActive,
+      dryRun,
+      executions: [],
+      totalIdleSlots: maxActive,
+      totalPromotedLanes: 0,
+      totalReviewActions: 0,
+      totalCommitIntakes: 0,
+    };
+  }
+
+  // Divide slots equally; give at least 1 per execution; cap at maxActive total
+  const perExecution = Math.max(1, Math.floor(maxActive / executions.length));
+
+  const results = executions.map((execution) =>
+    runCoordinatorLoop(projectRoot, execution, perExecution, dryRun),
+  );
+
+  return {
+    globalMaxActive: maxActive,
+    dryRun,
+    executions: results,
+    totalIdleSlots: results.reduce((sum, r) => sum + r.idleSlots, 0),
+    totalPromotedLanes: results.reduce((sum, r) => sum + r.promotedLanes.length, 0),
+    totalReviewActions: results.reduce((sum, r) => sum + r.reviewLaneCount, 0),
+    totalCommitIntakes: results.reduce((sum, r) => sum + r.commitLaneCount, 0),
+  };
+}
+
 function renderCoordinatorLoop(result) {
   const lines = [
     `Execution: ${result.execution}`,
@@ -175,5 +220,6 @@ if (require.main === module) {
 module.exports = {
   parseArgs,
   runCoordinatorLoop,
+  runMultiExecutionCoordinatorLoop,
   renderCoordinatorLoop,
 };
