@@ -32,6 +32,8 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 11. Before executor selection, run a quick preflight to detect whether the requested plan is already applied (target files/commits already present, no remaining actionable delta).
 12. If preflight shows “already applied,” report completion evidence and skip executor/worktree flows.
 13. Scope note: AUQ window-focus return behavior is implemented by tmux/window-management tooling and is intentionally out of scope for `superpower-dev:do`.
+14. After each plan execution is verified complete, run a feedback stage before final stop/convergence messaging.
+15. The feedback stage must review (a) current `superpower-dev:do` skill text and (b) the just-finished execution trace, then report concrete gaps and improvements.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -80,6 +82,11 @@ Request arrives
 │  │     └─ no -> continue execution
 │  │
 │  │  After one plan completes:
+│  │  ├─ Verification passed?
+│  │  │  ├─ no  -> report failure and request recovery choice
+│  │  │  └─ yes -> run Post-Execution Feedback Stage
+│  │  │           ├─ findings -> create MVC remediation plan and continue convergence rules
+│  │  │           └─ no findings -> continue convergence rules
 │  │  ├─ Convergence path to main unambiguous and verified?
 │  │  │  ├─ yes -> auto-converge to main, continue next queued plan
 │  │  │  └─ no  -> ask AUQ confirmation for convergence strategy
@@ -121,6 +128,21 @@ Request arrives
   - immediately start the next queued plan without waiting for an extra "proceed"
 - If convergence is ambiguous or risky, ask once via AUQ and continue after answer.
 - For direct `superpower-dev:do` governance edits that satisfy Core Rule 9, auto-commit with a Conventional Commit message immediately after verification.
+
+## Post-Execution Feedback Stage
+
+Trigger:
+- Run after execution verification for each completed plan.
+
+Required review outputs:
+1. Findings first, ordered by severity.
+2. Each finding includes concrete evidence and file/line references when applicable.
+3. Distinguish confirmed defects from assumptions/open questions.
+4. Produce a minimum-viable remediation plan path under `docs/superpowers/plans/` when fixes are needed.
+
+Behavior:
+- If no findings: state "no findings" and list residual risks/testing gaps.
+- If findings exist: summarize highest-risk gap first, then propose the smallest safe correction set.
 
 ## Confirmation Template
 
