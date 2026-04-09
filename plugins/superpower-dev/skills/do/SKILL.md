@@ -189,7 +189,7 @@ State transitions (per entry):
 5. `PARTIAL_PROGRESS -> RESUME_READY`
    - Trigger: batch re-check finds entry status → answered.
 6. `RESUME_READY -> RUNNING`
-   - Trigger: blocked_slices re-attached and execution resumed; consumed_at written.
+   - Trigger: blocked_slices re-attached and execution resumed; write `status → "consumed"` and `consumed_at`.
 
 ## Execution Guardrails
 
