@@ -19,3 +19,4 @@ plugins/parallel-lane-dev/state/
 plugins/parallel-lane-dev/PLD/state/
 .pld/
 node_modules/
+/.worktrees/
