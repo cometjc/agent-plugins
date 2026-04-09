@@ -151,14 +151,16 @@ Each entry:
 ```
 
 `status` values: `pending` | `answered` | `timeout` | `consumed`
-(`consumed` = `consumed_at` is set; subsequent polls skip this entry)
+(On consume: write `status → "consumed"` AND `consumed_at` timestamp. Subsequent polls skip entries where `consumed_at` is set.)
 
-`blocked_slices` stores `{ plan_file, section }` so the coordinator can reconstruct slice content after crash/restart without relying on in-memory context.
+`question_id`: coordinator-assigned sequential id per execution session (e.g. `auq-001`, `auq-002`).
+
+`blocked_slices` stores `{ plan_file, section }` so the coordinator can reconstruct slice content after crash/restart without relying on in-memory context. `section` is the first matching Markdown heading in `plan_file`; if the heading appears multiple times, append a line number suffix (e.g. `"## Step 3:L42"`).
 
 Read/write contract:
 - First AUQ: create file if absent (`{ "entries": [] }`), append new entry.
 - Each poll: update matching entry's `status` and `last_checked_at` in-place.
-- On RESUME trigger: write `consumed_at` timestamp.
+- On RESUME trigger: write `status → "consumed"` and `consumed_at` timestamp when slice execution begins.
 - On restart: read file; resume entries with `status` in `{ pending, timeout }` or `status=answered` with `consumed_at=null`.
 
 ## AUQ Runtime State Machine
