@@ -128,6 +128,7 @@ Request arrives
   - immediately start the next queued plan without waiting for an extra "proceed"
 - If convergence is ambiguous or risky, ask once via AUQ and continue after answer.
 - For direct `superpower-dev:do` governance edits that satisfy Core Rule 9, auto-commit with a Conventional Commit message immediately after verification.
+- Record evidence using `Execution Evidence Checklist` before final completion messaging.
 
 ## Post-Execution Feedback Stage
 
@@ -143,6 +144,15 @@ Required review outputs:
 Behavior:
 - If no findings: state "no findings" and list residual risks/testing gaps.
 - If findings exist: summarize highest-risk gap first, then propose the smallest safe correction set.
+
+## Execution Evidence Checklist
+
+For each executed plan, capture:
+- Selected artifact path and why it was chosen.
+- Preflight result (`already_applied` or `action_required`) with command evidence.
+- Executor AUQ result (when applicable).
+- Verification commands and outcomes.
+- Feedback stage result (`findings` or `no_findings`) and report/plan path.
 
 ## Confirmation Template
 
