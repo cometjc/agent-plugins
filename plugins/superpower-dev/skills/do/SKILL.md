@@ -130,29 +130,64 @@ Request arrives
 │     │     │  └─ no  -> brainstorming
 ```
 
+## AUQ Registry
+
+AUQ sessions are tracked in `docs/superpowers/executions/auq-registry.json` (global single file, maintained by coordinator).
+
+Each entry:
+
+```json
+{
+  "question_id": "auq-001",
+  "session_id": "sess-abc123",
+  "blocked_slices": [
+    { "plan_file": "docs/superpowers/plans/foo.md", "section": "## Step 3" }
+  ],
+  "status": "pending",
+  "submitted_at": "2026-04-10T10:00:00Z",
+  "last_checked_at": null,
+  "consumed_at": null
+}
+```
+
+`status` values: `pending` | `answered` | `timeout` | `consumed`
+(`consumed` = `consumed_at` is set; subsequent polls skip this entry)
+
+`blocked_slices` stores `{ plan_file, section }` so the coordinator can reconstruct slice content after crash/restart without relying on in-memory context.
+
+Read/write contract:
+- First AUQ: create file if absent (`{ "entries": [] }`), append new entry.
+- Each poll: update matching entry's `status` and `last_checked_at` in-place.
+- On RESUME trigger: write `consumed_at` timestamp.
+- On restart: read file; resume entries with `status` in `{ pending, timeout }` or `status=answered` with `consumed_at=null`.
+
 ## AUQ Runtime State Machine
 
-Use explicit runtime states for AUQ-gated execution:
+Macro state is derived from `auq-registry.json` entries, evaluated in priority order:
 
-- `RUNNING`: Active execution of steps that do not require unresolved AUQ answers.
-- `WAITING_AUQ`: A pending AUQ session exists and at least one branch is answer-gated.
-- `PARTIAL_PROGRESS`: Timeout occurred on blocking wait; blocked branch remains open while independent work continues.
-- `RESUME_READY`: A previously pending AUQ received an answer and the blocked branch can re-enter execution.
+| Macro State | Condition |
+|---|---|
+| `RESUME_READY` | Any entry: `status=answered` AND `consumed_at=null` |
+| `WAITING_AUQ` | Any entry: `status=pending` |
+| `PARTIAL_PROGRESS` | Any entry: `status=timeout`, AND no `RESUME_READY` entries |
+| `RUNNING` | All entries `consumed` or table empty |
 
-State transitions:
+Agent reads the table and derives macro state by priority order above. No additional global flag is needed.
+
+State transitions (per entry):
 
 1. `RUNNING -> WAITING_AUQ`
-   - Trigger: AUQ question submitted for required clarification.
+   - Trigger: new AUQ entry appended (status=pending).
 2. `WAITING_AUQ -> RUNNING`
-   - Trigger: Answer received during blocking wait.
+   - Trigger: answer received during blocking wait.
 3. `WAITING_AUQ -> PARTIAL_PROGRESS`
-   - Trigger: `get_answered_questions(session_id, blocking: true)` timeout.
+   - Trigger: blocking wait timeout; entry status → timeout.
 4. `PARTIAL_PROGRESS -> RUNNING`
-   - Trigger: Independent branch extraction complete and actionable steps remain.
+   - Trigger: independent slice extracted and executing.
 5. `PARTIAL_PROGRESS -> RESUME_READY`
-   - Trigger: non-blocking AUQ re-check finds an answer.
+   - Trigger: batch re-check finds entry status → answered.
 6. `RESUME_READY -> RUNNING`
-   - Trigger: blocked branch is re-planned and execution resumes.
+   - Trigger: blocked_slices re-attached and execution resumed; consumed_at written.
 
 ## Execution Guardrails
 
