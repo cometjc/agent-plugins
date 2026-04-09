@@ -165,6 +165,17 @@ sequenceDiagram
 - **`plan/`** empty or imported before **`go`**.
 - Scoreboard / `state/*` / `executions/*/*.md`: **legacy render** unless maintaining migration — **not** a second writable truth.
 
+## Telemetry helpers
+
+`pld:autopilot` already includes telemetry inline. Use the standalone scripts when you want only telemetry, e.g. for a post-execution cost review.
+
+| npm script | When to use |
+|-----------|-------------|
+| `npm run pld:telemetry:summarize -- --execution <id>` | View minute-bucket cost and drop-segment summary after an execution |
+| `npm run pld:telemetry:review -- --execution <id>` | Write a structured telemetry review file to `PLD/state/<execution>/telemetry-review.md` for offline inspection |
+
+These are read-only helpers — they do not change lane state or executor DB.
+
 ## Common mistakes
 
 - Using **chat** or **extra markdown** as authoritative status instead of **`report-result`**.
