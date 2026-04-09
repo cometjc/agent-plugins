@@ -14,7 +14,7 @@ Route the user request to the right Superpowers workflow stage and enforce execu
    - First try to infer `spec`/`plan` from common paths and recent files.
    - Ask only if there is no clear candidate or there are conflicting candidates.
 3. If subagents are already active in the session, continue with `subagent-driven-development` parallel flow.
-4. If subagents are not active and execution choice is ambiguous, ask for confirmation with a recommendation.
+4. If a plan requires execution and no subagents are currently active, always ask AUQ to confirm executor choice, with `subagent-driven-development` recommended first.
    - In Codex, use AUQ (`mcp__ask_user_questions__ask_user_questions`) for this confirmation.
    - Do not fall back to plain-text confirmation unless AUQ is unavailable.
 5. Except single-thread `executing-plans`, enforce `using-git-worktrees` before execution if not already guaranteed.
@@ -29,6 +29,9 @@ Route the user request to the right Superpowers workflow stage and enforce execu
    - Ensure project `.gitignore` contains `/.worktrees/` (add it if missing).
    - Include that `.gitignore` update in the same commit that resolves the worktree hygiene issue.
    - Do not remove existing ignore rules; apply the minimal additive change.
+11. Before executor selection, run a quick preflight to detect whether the requested plan is already applied (target files/commits already present, no remaining actionable delta).
+12. If preflight shows “already applied,” report completion evidence and skip executor/worktree flows.
+13. Scope note: AUQ window-focus return behavior is implemented by tmux/window-management tooling and is intentionally out of scope for `superpower-dev:do`.
 
 ## Artifact Detection (Semi-Automatic)
 
@@ -44,16 +47,37 @@ If multiple plausible candidates exist, ask a short disambiguation question.
 In Codex, use AUQ for this question.
 If none exists, route by request type (idea/bugfix/implementation).
 
+## Already Applied Preflight
+
+Run this preflight when a concrete plan path is selected:
+
+1. Check whether plan-target files already exist in their intended final locations.
+2. Check whether expected key markers/commands from the plan are already present.
+3. Check recent commits for matching intent when available.
+4. If all checks indicate no actionable delta, classify as `already_applied`.
+
+`already_applied` behavior:
+- Do not ask executor AUQ.
+- Do not create worktree.
+- Return a concise evidence-based completion report.
+
 ## Decision Tree
 
 ```text
 Request arrives
 ├─ Has implementation plan?
 │  ├─ yes
+│  │  ├─ Preflight: already applied?
+│  │  │  ├─ yes -> report evidence, skip execution
+│  │  │  └─ no  -> continue executor selection
 │  │  ├─ Subagents already active?
 │  │  │  ├─ yes -> continue subagent-driven-development (parallel allowed)
-│  │  │  └─ no  -> ask confirmation (recommend subagent-driven-development)
-│  │  └─ If user chooses executing-plans -> allow single-thread execution
+│  │  │  └─ no  -> ask AUQ executor confirmation (recommend subagent-driven-development)
+│  │  └─ Worktree required?
+│  │     ├─ yes -> setup worktree
+│  │     │  ├─ success -> continue execution
+│  │     │  └─ fail -> AUQ fallback selection
+│  │     └─ no -> continue execution
 │  │
 │  │  After one plan completes:
 │  │  ├─ Convergence path to main unambiguous and verified?
@@ -72,6 +96,13 @@ Request arrives
 
 - `subagent-driven-development`:
   - Require `using-git-worktrees` if workspace isolation is not already guaranteed.
+  - If worktree setup fails:
+    1. capture and report the concrete failure cause,
+    2. attempt one safe automated fix/retry,
+    3. if still failing, ask AUQ for fallback:
+       - retry with adjusted worktree parameters,
+       - switch to `executing-plans` in current workspace,
+       - pause for manual remediation.
   - Use `dispatching-parallel-agents` only for independent subproblems inside the flow.
 - `dispatching-parallel-agents`:
   - Not a top-level replacement for plan executors.
@@ -111,7 +142,7 @@ Codex AUQ form (required when available):
 - Idea / new behavior / unclear scope -> `brainstorming`
 - Approved spec without plan -> `writing-plans`
 - Plan with active subagents -> `subagent-driven-development`
-- Plan without active subagents -> confirm executor (recommend `subagent-driven-development`)
+- Plan without active subagents -> ask AUQ executor confirmation (recommend subagent-driven-development)
 - Independent multi-domain subproblems during execution -> `dispatching-parallel-agents`
 - Explicit single-thread preference -> `executing-plans`
 - Multiple explicit plans in one request -> queue + auto-converge-per-plan + continue next plan
