@@ -3329,6 +3329,75 @@ test('review helper surfaces actionable execution insights alongside review acti
   assert.match(renderActions(result), /Review prompts should inspect open execution insights/);
 });
 
+test('provisionWorktree creates worktree and stages gitignore when pool dir not ignored', async () => {
+  const {provisionWorktree} = freshRequire(
+    'plugins/parallel-lane-dev/scripts/pld-provision-worktree.cjs',
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-prov-create-'));
+  setupTempGitRepo(root);
+
+  // Create a minimal executor DB by writing a fixture with the pld-tool
+  const toolPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs');
+  const planDir = path.join(root, 'plan');
+  fs.mkdirSync(planDir, {recursive: true});
+  const execDir = path.join(root, 'PLD', 'executions', 'test-exec');
+  fs.mkdirSync(execDir, {recursive: true});
+  // Lane plan with a worktree path
+  fs.writeFileSync(
+    path.join(execDir, 'lane-1.md'),
+    [
+      '# Lane 1 Plan',
+      '> PLD worktree: `.worktrees/lane-1-test`',
+      '> Lane-local verification: `echo baseline-ok`',
+      '## M - Work Item',
+      '- [ ] Do the thing',
+    ].join('\n'),
+    'utf8',
+  );
+  run('node', [toolPath, '--project-root', root, '--role', 'coordinator', 'import-plans', '--json'], root);
+
+  const result = provisionWorktree(root, 'test-exec', 'Lane 1', {skipTests: true});
+
+  assert.equal(result.worktreeCreated, true, 'should create a new worktree');
+  assert.ok(fs.existsSync(result.worktreePath), 'worktree directory must exist');
+
+  // .worktrees/ should be staged in .gitignore because it wasn't ignored before
+  assert.equal(result.gitignoreStaged, true, 'gitignore should be staged');
+  const gitignoreContent = fs.readFileSync(path.join(root, '.gitignore'), 'utf8');
+  assert.ok(gitignoreContent.includes('.worktrees'), '.gitignore must contain .worktrees');
+});
+
+test('provisionWorktree is idempotent: re-running on existing worktree is a no-op', async () => {
+  const {provisionWorktree} = freshRequire(
+    'plugins/parallel-lane-dev/scripts/pld-provision-worktree.cjs',
+  );
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pld-prov-idem-'));
+  setupTempGitRepo(root);
+
+  const toolPath = repoRoot('plugins', 'parallel-lane-dev', 'scripts', 'pld-tool.cjs');
+  const execDir = path.join(root, 'PLD', 'executions', 'idem-exec');
+  fs.mkdirSync(execDir, {recursive: true});
+  fs.writeFileSync(
+    path.join(execDir, 'lane-1.md'),
+    [
+      '# Lane 1 Plan',
+      '> PLD worktree: `.worktrees/lane-1-idem`',
+      '> Lane-local verification: `echo ok`',
+      '## M - Work Item',
+      '- [ ] Step',
+    ].join('\n'),
+    'utf8',
+  );
+  run('node', [toolPath, '--project-root', root, '--role', 'coordinator', 'import-plans', '--json'], root);
+
+  const first = provisionWorktree(root, 'idem-exec', 'Lane 1', {skipTests: true});
+  assert.equal(first.worktreeCreated, true);
+
+  const second = provisionWorktree(root, 'idem-exec', 'Lane 1', {skipTests: true});
+  assert.equal(second.worktreeCreated, false, 'second run must not recreate worktree');
+  assert.equal(second.gitignoreStaged, false, 'second run must not re-stage gitignore');
+});
+
 test('provisionWorktree returns lane-not-found for unknown lane', () => {
   const {provisionWorktree} = freshRequire(
     'plugins/parallel-lane-dev/scripts/pld-provision-worktree.cjs',
