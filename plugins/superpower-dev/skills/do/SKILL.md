@@ -25,6 +25,10 @@ Route the user request to the right Superpowers workflow stage and enforce execu
 9. For direct governance updates to this skill (for example: `update $superpower-dev:do ...`) with a single explicit target and low-risk, doc-only edits, auto-commit after verification without waiting for extra confirmation.
    - Scope guard: stage and commit only files required by the requested governance update.
    - If unrelated modified files exist, do not revert them; exclude them from the commit unless explicitly requested.
+10. If new worktree paths under `.worktrees/*` appear in git unstaged/untracked state, enforce ignore hygiene before continuing:
+   - Ensure project `.gitignore` contains `/.worktrees/` (add it if missing).
+   - Include that `.gitignore` update in the same commit that resolves the worktree hygiene issue.
+   - Do not remove existing ignore rules; apply the minimal additive change.
 
 ## Artifact Detection (Semi-Automatic)
 
